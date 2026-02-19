@@ -45,22 +45,21 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section with Beautiful Landscape Background */}
-      <section className="relative h-[65vh] w-full overflow-hidden flex flex-col justify-center">
+      <section className="relative h-[80vh] w-full overflow-hidden flex items-end">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://picsum.photos/seed/hero-czech/1920/1080"
+            src="https://picsum.photos/seed/hero-landscape-czech/1920/1080"
             alt="Česká krajina"
             fill
             className="object-cover"
             priority
             data-ai-hint="czech landscape"
           />
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
         
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="max-w-xl bg-background/80 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-white/20 shadow-2xl transition-all hover:bg-background/90">
+        <div className="relative z-10 container mx-auto px-4 mb-16">
+          <div className="max-w-xl bg-background/90 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-white/20 shadow-2xl transition-all hover:bg-background">
             <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-4 leading-tight">
               Objevte krásy přírody
             </h1>
