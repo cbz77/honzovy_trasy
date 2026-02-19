@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -41,7 +40,7 @@ service cloud.firestore {
       // Upravovat a mazat může pouze autor trasy nebo administrátor
       allow update, delete: if isSignedIn() && (isAdmin() || isOwner(resource));
 
-      // Obrázky k trasám (pokud by byly v podkolekci, nyní jsou v poli)
+      // Obrázky k trasám (v poli)
       match /images/{imageId} {
         allow read: if true;
         allow write: if isSignedIn();

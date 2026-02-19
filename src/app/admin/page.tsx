@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -17,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
@@ -37,13 +36,12 @@ export default function AdminDashboard() {
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
-  }, [db, user]);
+  }, [db, user?.uid]);
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   const isAdmin = !!adminRole;
 
-  // Build query based on user role
-  // We only build the query when we are sure about the user's role
+  // Build query based on user role - strictly wait for isAdminRoleLoading to finish
   const routesQuery = useMemoFirebase(() => {
     if (!db || !user || isAdminRoleLoading) return null;
     
@@ -55,6 +53,7 @@ export default function AdminDashboard() {
       );
     } else {
       // Regular users are filtered by createdBy to ensure they only see their own data
+      // This prevents permission errors for non-admins
       return query(
         collection(db, 'published_route_points'), 
         where('createdBy', '==', user.uid),
