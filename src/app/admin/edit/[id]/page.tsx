@@ -54,15 +54,15 @@ export default function EditRoute() {
       const existingRoute = getRouteById(id);
       if (existingRoute) {
         setFormData({
-          name: existingRoute.name,
-          latitude: existingRoute.latitude.toString(),
-          longitude: existingRoute.longitude.toString(),
-          embedUrl: existingRoute.embedUrl,
-          description: existingRoute.description,
-          difficulty: existingRoute.difficulty,
-          routeType: existingRoute.routeType,
-          suitableFor: existingRoute.suitableFor,
-          images: existingRoute.images
+          name: existingRoute.name || '',
+          latitude: (existingRoute.latitude || '').toString(),
+          longitude: (existingRoute.longitude || '').toString(),
+          embedUrl: existingRoute.embedUrl || '',
+          description: existingRoute.description || '',
+          difficulty: existingRoute.difficulty || 'Střední',
+          routeType: existingRoute.routeType || 'Okružní',
+          suitableFor: existingRoute.suitableFor || [],
+          images: existingRoute.images || []
         });
       } else {
         toast({
@@ -85,8 +85,8 @@ export default function EditRoute() {
     setFormData(prev => ({
       ...prev,
       suitableFor: checked 
-        ? [...prev.suitableFor, optionId]
-        : prev.suitableFor.filter(id => id !== optionId)
+        ? [...(prev.suitableFor || []), optionId]
+        : (prev.suitableFor || []).filter(id => id !== optionId)
     }));
   };
 
@@ -320,7 +320,7 @@ export default function EditRoute() {
                   <div key={option.id} className="flex items-center space-x-2">
                     <Checkbox 
                       id={option.id} 
-                      checked={formData.suitableFor.includes(option.id)}
+                      checked={(formData.suitableFor || []).includes(option.id)}
                       onCheckedChange={(checked) => handleSuitableChange(option.id, !!checked)}
                     />
                     <label 
