@@ -2,6 +2,12 @@
 {
   "placeholderImages": [
     {
+      "id": "hero-bg",
+      "description": "Panoramic view of Czech mountains and forests",
+      "imageUrl": "https://picsum.photos/seed/hero-czech/1920/1080",
+      "imageHint": "czech landscape"
+    },
+    {
       "id": "route-1",
       "description": "Mountain trail through pine forest",
       "imageUrl": "https://picsum.photos/seed/101/1200/800",

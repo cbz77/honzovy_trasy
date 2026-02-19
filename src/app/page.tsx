@@ -1,16 +1,15 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getRoutes, RoutePoint } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Mountain, Filter, X, Search, Map as MapIcon } from 'lucide-react';
+import { MapPin, ArrowRight, Mountain, X, Search } from 'lucide-react';
 import Image from 'next/image';
-import Script from 'next/script';
 
 export default function Home() {
   const [routes, setRoutes] = useState<RoutePoint[]>([]);
@@ -18,9 +17,6 @@ export default function Home() {
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterSuitable, setFilterSuitable] = useState<string>('all');
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const sMapRef = useRef<any>(null);
 
   useEffect(() => {
     setRoutes(getRoutes());
@@ -37,53 +33,6 @@ export default function Home() {
     });
   }, [routes, searchTerm, filterDifficulty, filterType, filterSuitable]);
 
-  // Mapy.cz Initialization
-  useEffect(() => {
-    if (mapLoaded && mapRef.current && typeof window !== 'undefined' && (window as any).SMap) {
-      const SMap = (window as any).SMap;
-      const JAK = (window as any).JAK;
-
-      // Clear previous map instance if exists
-      if (mapRef.current) {
-        mapRef.current.innerHTML = '';
-      }
-
-      // Default center (Czech Republic)
-      let center = SMap.Coords.fromWGS84(14.41, 50.08);
-      let zoom = 7;
-
-      // Adjust center if there are filtered routes
-      if (filteredRoutes.length > 0) {
-        const avgLat = filteredRoutes.reduce((sum, r) => sum + r.latitude, 0) / filteredRoutes.length;
-        const avgLng = filteredRoutes.reduce((sum, r) => sum + r.longitude, 0) / filteredRoutes.length;
-        center = SMap.Coords.fromWGS84(avgLng, avgLat);
-        zoom = filteredRoutes.length === 1 ? 12 : 9;
-      }
-
-      const map = new SMap(mapRef.current, center, zoom);
-      sMapRef.current = map;
-      
-      map.addDefaultLayer(SMap.DEF_TURIST).enable();
-      map.addDefaultControls();
-
-      const markerLayer = new SMap.Layer.Marker();
-      map.addLayer(markerLayer);
-      markerLayer.enable();
-
-      filteredRoutes.forEach(route => {
-        const coords = SMap.Coords.fromWGS84(route.longitude, route.latitude);
-        const marker = new SMap.Marker(coords, route.id, { title: route.name });
-        
-        // Marker click interaction
-        marker.getContainer().addEventListener("click", () => {
-          window.location.href = `/routes/${route.id}`;
-        });
-
-        markerLayer.addMarker(marker);
-      });
-    }
-  }, [mapLoaded, filteredRoutes]);
-
   const resetFilters = () => {
     setSearchTerm('');
     setFilterDifficulty('all');
@@ -95,39 +44,38 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <Script 
-        src="https://api.mapy.cz/loader.js" 
-        onLoad={() => {
-          const Loader = (window as any).Loader;
-          Loader.async = true;
-          Loader.load(null, { suggestion: true }, () => {
-            setMapLoaded(true);
-          });
-        }}
-      />
-
-      {/* Hero Section with Interactive Map */}
-      <section className="relative h-[70vh] w-full overflow-hidden bg-muted flex flex-col">
+      {/* Hero Section with Beautiful Landscape Background */}
+      <section className="relative h-[65vh] w-full overflow-hidden flex flex-col justify-center">
         <div className="absolute inset-0 z-0">
-          <div ref={mapRef} className="w-full h-full" />
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-background/20 via-transparent to-background/40" />
+          <Image 
+            src="https://picsum.photos/seed/hero-czech/1920/1080"
+            alt="Česká krajina"
+            fill
+            className="object-cover"
+            priority
+            data-ai-hint="czech landscape"
+          />
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/20" />
         </div>
         
-        <div className="relative z-10 container mx-auto px-4 mt-auto mb-12 pointer-events-none">
-          <div className="max-w-xl bg-background/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/20 shadow-2xl pointer-events-auto transition-all hover:bg-background/90">
-            <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-4">
+        <div className="relative z-10 container mx-auto px-4">
+          <div className="max-w-xl bg-background/80 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-white/20 shadow-2xl transition-all hover:bg-background/90">
+            <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-4 leading-tight">
               Objevte krásy přírody
             </h1>
-            <p className="text-muted-foreground mb-6">
-              Interaktivní mapa tras a výletů. Klikněte na body na mapě nebo prohledejte náš katalog níže.
+            <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+              Prozkoumejte náš pečlivě vybraný katalog turistických tras a výletů po celé České republice. Od lehkých procházek po náročné hřebenovky.
             </p>
-            <Button 
-              size="lg" 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 rounded-full shadow-lg transition-all hover:scale-105" 
-              onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Prohlédnout katalog
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                size="lg" 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 rounded-full shadow-lg transition-all hover:scale-105" 
+                onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Prohlédnout katalog
+              </Button>
+            </div>
           </div>
         </div>
       </section>
