@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -27,12 +28,12 @@ export default function Login() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      initiateEmailSignIn(auth, email, password);
+      await initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -43,15 +44,19 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      initiateGoogleSignIn(auth);
+      await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      let message = "Přihlášení přes Google se nezdařilo.";
+      if (error.code === 'auth/unauthorized-domain') {
+        message = "Doména není autorizována ve Firebase konzoli (Authorized domains).";
+      }
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
-        description: "Přihlášení přes Google se nezdařilo.",
+        description: message,
       });
       setIsLoading(false);
     }
