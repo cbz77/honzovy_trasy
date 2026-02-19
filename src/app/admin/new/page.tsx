@@ -55,7 +55,6 @@ export default function NewRoute() {
       return;
     }
 
-    // Convert to base64 for demo purposes (usually you'd upload to a server/S3)
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -163,7 +162,6 @@ export default function NewRoute() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Basic Info */}
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -217,34 +215,32 @@ export default function NewRoute() {
           </CardContent>
         </Card>
 
-        {/* Map Embed */}
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapIcon className="h-5 w-5 text-primary" />
-              Mapa a interakce
+              Mapa
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="embedUrl">Embed URL mapy (Google Maps / Mapy.cz) *</Label>
-              <Input 
+              <Label htmlFor="embedUrl">HTML Embed kód mapy (celý iframe) *</Label>
+              <Textarea 
                 id="embedUrl" 
                 name="embedUrl" 
-                placeholder="https://www.google.com/maps/embed?..." 
+                placeholder='<iframe src="https://www.google.com/maps/embed?..." ...></iframe>' 
                 value={formData.embedUrl}
                 onChange={handleInputChange}
                 required
-                className="rounded-xl"
+                className="rounded-xl min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
-                Získejte kód pro vložení na Google Maps (Sdílet &rarr; Vložit mapu &rarr; zkopírujte URL z atributu src).
+                Zkopírujte celý kód pro vložení (Sdílet {"->"} Vložit mapu {"->"} Zkopírovat HTML).
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Description with AI */}
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -278,7 +274,6 @@ export default function NewRoute() {
           </CardContent>
         </Card>
 
-        {/* Images */}
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

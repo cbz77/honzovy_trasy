@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getRouteById, RoutePoint } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Calendar, Camera, Mountain } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -29,23 +29,25 @@ export default function RouteDetail() {
     );
   }
 
+  const heroImage = route.images && route.images.length > 0 
+    ? route.images[0] 
+    : "https://picsum.photos/seed/route-placeholder/1920/1080";
+
   return (
     <div className="bg-background min-h-screen pb-20">
-      {/* Embedded Map Header */}
-      <section className="w-full h-[50vh] relative">
-        <iframe
-          src={route.embedUrl}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          className="grayscale-[20%] brightness-95"
-        ></iframe>
+      {/* Hero Image Header */}
+      <section className="w-full h-[60vh] relative">
+        <Image 
+          src={heroImage} 
+          alt={route.name}
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-background/90" />
         <div className="absolute top-6 left-6">
           <Link href="/">
-            <Button variant="secondary" size="sm" className="shadow-lg backdrop-blur-md bg-white/80 hover:bg-white flex gap-2">
+            <Button variant="secondary" size="sm" className="shadow-lg backdrop-blur-md bg-white/80 hover:bg-white flex gap-2 rounded-full">
               <ArrowLeft className="h-4 w-4" />
               Zpět na mapu
             </Button>
@@ -53,8 +55,8 @@ export default function RouteDetail() {
         </div>
       </section>
 
-      <div className="container mx-auto px-4 -mt-16 relative z-10">
-        <div className="bg-card rounded-3xl shadow-2xl p-8 md:p-12 border border-white/20 backdrop-blur-sm">
+      <div className="container mx-auto px-4 -mt-32 relative z-10">
+        <div className="bg-card rounded-[3rem] shadow-2xl p-8 md:p-12 border border-white/20 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-b pb-8">
             <div>
               <div className="flex items-center gap-2 text-primary font-semibold mb-2">
@@ -77,7 +79,7 @@ export default function RouteDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-headline font-bold mb-6 text-foreground flex items-center gap-2">
                 O trase
@@ -89,7 +91,7 @@ export default function RouteDetail() {
 
             <div className="space-y-8">
               <div className="bg-secondary/50 rounded-2xl p-6 border border-primary/10">
-                <h3 className="font-headline font-bold mb-4 text-primary">Informace</h3>
+                <h3 className="font-headline font-bold mb-4 text-primary">Detaily</h3>
                 <ul className="space-y-4 text-sm">
                   <li className="flex justify-between border-b border-primary/10 pb-2">
                     <span className="text-muted-foreground">Náročnost</span>
@@ -100,13 +102,41 @@ export default function RouteDetail() {
                     <span className="font-semibold">Okružní</span>
                   </li>
                   <li className="flex justify-between border-b border-primary/10 pb-2">
-                    <span className="text-muted-foreground">Doprava</span>
-                    <span className="font-semibold">Auto / Bus</span>
+                    <span className="text-muted-foreground">Vhodné pro</span>
+                    <span className="font-semibold">Rodiny, pěší</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
+
+          {/* Map Section */}
+          {route.embedUrl && (
+            <div className="mt-12 mb-16">
+              <h2 className="text-2xl font-headline font-bold mb-6 text-foreground flex items-center gap-2">
+                <MapIcon className="h-6 w-6 text-primary" />
+                Interaktivní mapa
+              </h2>
+              <div className="rounded-3xl overflow-hidden shadow-lg border bg-muted aspect-video relative">
+                {route.embedUrl.includes('<iframe') ? (
+                  <div 
+                    className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full"
+                    dangerouslySetInnerHTML={{ __html: route.embedUrl }} 
+                  />
+                ) : (
+                  <iframe
+                    src={route.embedUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  ></iframe>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Photo Gallery */}
           {route.images && route.images.length > 0 && (
