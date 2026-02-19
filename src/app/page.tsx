@@ -52,7 +52,7 @@ export default function Home() {
       <section className="relative h-[80vh] w-full overflow-hidden flex items-end">
         <div className="absolute inset-0 z-0">
           <Image 
-            src="https://picsum.photos/seed/hero-landscape-czech/1920/1080"
+            src="https://picsum.photos/seed/101/1200/800"
             alt="Česká krajina"
             fill
             className="object-cover"
