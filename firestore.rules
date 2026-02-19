@@ -2,18 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBÁLNÍ POMOCNÉ FUNKCE ---
+    // --- POMOCNÉ FUNKCE ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Kontrola admina: existuje dokument s UID uživatele v kolekci roles_admin
+    // Kontrola admina: dokument v roles_admin odpovídá UID uživatele
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Kontrola majitele: ID tvůrce v dokumentu odpovídá UID přihlášeného uživatele
+    // Kontrola majitele: pole createdBy v dokumentu odpovídá UID uživatele
     function isOwner(resource) {
       return isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
@@ -21,26 +21,20 @@ service cloud.firestore {
     // --- PRAVIDLA KOLEKCÍ ---
 
     match /roles_admin/{adminUid} {
-      // Uživatel může číst svůj vlastní dokument role
+      // Uživatel může číst pouze své vlastní potvrzení role admina
       allow get: if isSignedIn() && request.auth.uid == adminUid;
       allow list, write: if false;
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny (řeší i list v administraci)
+      // Hlavní stránka (katalog) - kdokoliv může číst seznam i jednotlivé detaily
       allow read: if true;
       
-      // Vytvářet může jakýkoliv přihlášený uživatel
+      // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
-      // Upravovat a mazat může pouze autor trasy nebo administrátor
-      allow update, delete: if isSignedIn() && (isAdmin() || isOwner(resource));
-
-      // Obrázky k trasám (v poli nebo jako podkolekce, pokud by byla)
-      match /{allPaths=**} {
-        allow read: if true;
-        allow write: if isSignedIn();
-      }
+      // Úprava a smazání - pouze autor trasy nebo administrátor
+      allow update, delete: if isAdmin() || isOwner(resource);
     }
   }
 }
