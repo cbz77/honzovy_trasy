@@ -43,18 +43,18 @@ export default function AdminDashboard() {
   const isAdmin = !!adminRole;
 
   // Build query based on user role
+  // We only build the query when we are sure about the user's role
   const routesQuery = useMemoFirebase(() => {
     if (!db || !user || isAdminRoleLoading) return null;
     
     // Admins see everything, regulars see only their own creations
     if (isAdmin) {
-      // For collection-wide list, we just order by date
       return query(
         collection(db, 'published_route_points'), 
         orderBy('createdAt', 'desc')
       );
     } else {
-      // Regular users are filtered by createdBy
+      // Regular users are filtered by createdBy to ensure they only see their own data
       return query(
         collection(db, 'published_route_points'), 
         where('createdBy', '==', user.uid),
@@ -76,7 +76,8 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading)) {
+  // Loading state handling
+  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading && !routes)) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
