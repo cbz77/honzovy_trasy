@@ -32,7 +32,7 @@ export default function RouteDetail() {
 
   const heroImage = route.images && route.images.length > 0 
     ? route.images[0] 
-    : "https://picsum.photos/seed/route-placeholder/1920/1080";
+    : "https://picsum.photos/seed/route-placeholder/1200/800";
 
   return (
     <div className="bg-background min-h-screen pb-20">
@@ -44,6 +44,7 @@ export default function RouteDetail() {
           fill
           className="object-cover"
           priority
+          data-ai-hint="mountain landscape"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-background/90" />
         <div className="absolute top-6 left-6">
@@ -135,22 +136,10 @@ export default function RouteDetail() {
                 Interaktivní mapa
               </h2>
               <div className="rounded-3xl overflow-hidden shadow-lg border bg-muted aspect-video relative">
-                {route.embedUrl.includes('<iframe') ? (
-                  <div 
-                    className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full"
-                    dangerouslySetInnerHTML={{ __html: route.embedUrl }} 
-                  />
-                ) : (
-                  <iframe
-                    src={route.embedUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  ></iframe>
-                )}
+                <div 
+                  className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full"
+                  dangerouslySetInnerHTML={{ __html: route.embedUrl }} 
+                />
               </div>
             </div>
           )}
