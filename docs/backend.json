@@ -1,0 +1,98 @@
+
+{
+  "entities": {
+    "RoutePoint": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoutePoint",
+      "type": "object",
+      "description": "Represents a specific point of interest along a tourist route within the 'Honzovy trasy' application.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "embedUrl": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["Lehká", "Střední", "Obtížná"]
+        },
+        "routeType": {
+          "type": "string",
+          "enum": ["Okružní", "Přechod"]
+        },
+        "suitableFor": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "images": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "latitude",
+        "longitude",
+        "difficulty",
+        "routeType"
+      ]
+    },
+    "AdminRole": {
+      "title": "AdminRole",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/published_route_points/{routePointId}",
+        "definition": {
+          "entityName": "RoutePoint",
+          "schema": {
+            "$ref": "#/backend/entities/RoutePoint"
+          },
+          "description": "Publicly visible route points."
+        }
+      },
+      {
+        "path": "/roles_admin/{adminUid}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/AdminRole"
+          },
+          "description": "Admin privileges."
+        }
+      }
+    ]
+  }
+}

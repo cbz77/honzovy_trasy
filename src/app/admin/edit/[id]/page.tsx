@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { saveRoute, getRouteById } from '@/lib/store';
+import { useDoc, useFirestore, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,10 +27,15 @@ const SUITABLE_OPTIONS = [
 export default function EditRoute() {
   const router = useRouter();
   const { id } = useParams();
+  const db = useFirestore();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  
+  const routeRef = id ? doc(db, 'published_route_points', id as string) : null;
+  const { data: route, isLoading: isRouteLoading } = useDoc(routeRef);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,37 +50,26 @@ export default function EditRoute() {
   });
 
   useEffect(() => {
-    const user = localStorage.getItem('honzovy_user');
-    if (!user) {
+    if (!isUserLoading && !user) {
       router.push('/login');
-      return;
     }
+  }, [user, isUserLoading, router]);
 
-    if (id && typeof id === 'string') {
-      const existingRoute = getRouteById(id);
-      if (existingRoute) {
-        setFormData({
-          name: existingRoute.name || '',
-          latitude: (existingRoute.latitude || '').toString(),
-          longitude: (existingRoute.longitude || '').toString(),
-          embedUrl: existingRoute.embedUrl || '',
-          description: existingRoute.description || '',
-          difficulty: existingRoute.difficulty || 'Střední',
-          routeType: existingRoute.routeType || 'Okružní',
-          suitableFor: existingRoute.suitableFor || [],
-          images: existingRoute.images || []
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Chyba",
-          description: "Trasa nebyla nalezena.",
-        });
-        router.push('/admin');
-      }
+  useEffect(() => {
+    if (route) {
+      setFormData({
+        name: route.name || '',
+        latitude: route.latitude?.toString() || '',
+        longitude: route.longitude?.toString() || '',
+        embedUrl: route.embedUrl || '',
+        description: route.description || '',
+        difficulty: route.difficulty || 'Střední',
+        routeType: route.routeType || 'Okružní',
+        suitableFor: route.suitableFor || [],
+        images: route.images || []
+      });
     }
-    setIsLoading(false);
-  }, [id, router, toast]);
+  }, [route]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -160,7 +155,7 @@ export default function EditRoute() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.latitude || !formData.longitude || !formData.embedUrl) {
+    if (!formData.name || !formData.latitude || !formData.longitude) {
       toast({
         variant: "destructive",
         title: "Chyba",
@@ -171,8 +166,9 @@ export default function EditRoute() {
 
     setIsSubmitting(true);
     try {
-      saveRoute({
-        id: id as string,
+      if (!routeRef) return;
+      
+      const payload = {
         name: formData.name,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
@@ -181,8 +177,11 @@ export default function EditRoute() {
         difficulty: formData.difficulty,
         routeType: formData.routeType,
         suitableFor: formData.suitableFor,
-        images: formData.images
-      });
+        images: formData.images,
+        updatedAt: new Date().toISOString(),
+      };
+
+      updateDocumentNonBlocking(routeRef, payload);
 
       toast({
         title: "Trasa upravena",
@@ -200,7 +199,7 @@ export default function EditRoute() {
     }
   };
 
-  if (isLoading) {
+  if (isRouteLoading || isUserLoading) {
     return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
@@ -356,7 +355,7 @@ export default function EditRoute() {
                 className="rounded-xl min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
-                Zkopírujte celý kód pro vložení (Sdílet {"->"} Vložit mapu {"->"} Zkopírovat HTML).
+                Získejte kód pro vložení na Google Maps (Sdílet {'->'} Vložit mapu {'->'} zkopírujte URL z atributu src).
               </p>
             </div>
           </CardContent>

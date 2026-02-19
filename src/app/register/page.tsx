@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth, useUser } from '@/firebase';
+import { initiateEmailSignUp } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { UserPlus, Compass } from 'lucide-react';
+import { UserPlus, Compass, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Register() {
@@ -19,7 +21,15 @@ export default function Register() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +44,21 @@ export default function Register() {
 
     setIsLoading(true);
     
-    // Simulating registration
-    setTimeout(() => {
-      localStorage.setItem('honzovy_user', JSON.stringify({ email: formData.email, name: formData.name }));
+    try {
+      initiateEmailSignUp(auth, formData.email, formData.password);
+    } catch (error: any) {
       toast({
-        title: "Registrace úspěšná",
-        description: "Váš účet byl vytvořen. Vítejte v týmu!",
+        variant: "destructive",
+        title: "Chyba registrace",
+        description: error.message || "Nepodařilo se vytvořit účet.",
       });
       setIsLoading(false);
-      window.location.href = '/admin';
-    }, 1000);
+    }
   };
+
+  if (isUserLoading) {
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-20 flex justify-center items-center min-h-[calc(100vh-160px)]">
@@ -110,7 +124,7 @@ export default function Register() {
               className="w-full bg-primary hover:bg-primary/90 h-12 rounded-xl text-lg font-bold transition-all shadow-lg hover:shadow-xl mt-4 flex gap-2"
               disabled={isLoading}
             >
-              {isLoading ? <UserPlus className="h-5 w-5 animate-pulse" /> : <UserPlus className="h-5 w-5" />}
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserPlus className="h-5 w-5" />}
               Vytvořit účet
             </Button>
           </form>

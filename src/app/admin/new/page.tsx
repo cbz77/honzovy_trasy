@@ -3,7 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveRoute } from '@/lib/store';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +27,8 @@ const SUITABLE_OPTIONS = [
 
 export default function NewRoute() {
   const router = useRouter();
+  const { db } = useFirestore() as any;
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,12 +46,10 @@ export default function NewRoute() {
   });
 
   useEffect(() => {
-    // Auth check
-    const user = localStorage.getItem('honzovy_user');
-    if (!user) {
+    if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [router]);
+  }, [user, isUserLoading, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -133,7 +135,7 @@ export default function NewRoute() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.latitude || !formData.longitude || !formData.embedUrl) {
+    if (!formData.name || !formData.latitude || !formData.longitude) {
       toast({
         variant: "destructive",
         title: "Chyba",
@@ -144,7 +146,11 @@ export default function NewRoute() {
 
     setIsSubmitting(true);
     try {
-      saveRoute({
+      const id = Math.random().toString(36).substring(2, 9);
+      const docRef = doc(db, 'published_route_points', id);
+      
+      const payload = {
+        id,
         name: formData.name,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
@@ -153,8 +159,12 @@ export default function NewRoute() {
         difficulty: formData.difficulty,
         routeType: formData.routeType,
         suitableFor: formData.suitableFor,
-        images: formData.images
-      });
+        images: formData.images,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setDocumentNonBlocking(docRef, payload, { merge: true });
 
       toast({
         title: "Trasa uložena",
@@ -324,7 +334,7 @@ export default function NewRoute() {
                 className="rounded-xl min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
-                Zkopírujte celý kód pro vložení (Sdílet {"->"} Vložit mapu {"->"} Zkopírovat HTML).
+                Získejte kód pro vložení na Google Maps (Sdílet {'->'} Vložit mapu {'->'} zkopírujte URL z atributu src).
               </p>
             </div>
           </CardContent>

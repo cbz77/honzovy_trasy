@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth, useUser } from '@/firebase';
+import { initiateEmailSignIn } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LogIn, Compass, ShieldCheck } from 'lucide-react';
+import { LogIn, Compass, ShieldCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
@@ -15,23 +17,36 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulating login
-    setTimeout(() => {
-      localStorage.setItem('honzovy_user', JSON.stringify({ email }));
+    try {
+      initiateEmailSignIn(auth, email, password);
+      // Auth state change will be handled by FirebaseProvider
+    } catch (error: any) {
       toast({
-        title: "Přihlášení úspěšné",
-        description: "Vítejte v administraci Honzových tras.",
+        variant: "destructive",
+        title: "Chyba přihlášení",
+        description: error.message || "Zkontrolujte e-mail a heslo.",
       });
       setIsLoading(false);
-      window.location.href = '/admin';
-    }, 1000);
+    }
   };
+
+  if (isUserLoading) {
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-20 flex justify-center items-center min-h-[calc(100vh-160px)]">
@@ -75,7 +90,7 @@ export default function Login() {
               className="w-full bg-primary hover:bg-primary/90 h-12 rounded-xl text-lg font-bold transition-all shadow-lg hover:shadow-xl flex gap-2"
               disabled={isLoading}
             >
-              {isLoading ? <LogIn className="h-5 w-5 animate-pulse" /> : <ShieldCheck className="h-5 w-5" />}
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
               Přihlásit se
             </Button>
           </form>

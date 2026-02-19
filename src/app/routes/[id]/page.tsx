@@ -2,22 +2,26 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getRouteById, RoutePoint } from '@/lib/store';
+import { useDoc, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon, Gauge, Path, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon, Gauge, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function RouteDetail() {
   const { id } = useParams();
-  const [route, setRoute] = useState<RoutePoint | null>(null);
+  const db = useFirestore();
+  const routeRef = id ? doc(db, 'published_route_points', id as string) : null;
+  const { data: route, isLoading } = useDoc(routeRef);
 
-  useEffect(() => {
-    if (id && typeof id === 'string') {
-      setRoute(getRouteById(id) || null);
-    }
-  }, [id]);
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-20 flex justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!route) {
     return (
@@ -36,7 +40,6 @@ export default function RouteDetail() {
 
   return (
     <div className="bg-background min-h-screen pb-20">
-      {/* Hero Image Header */}
       <section className="w-full h-[60vh] relative">
         <Image 
           src={heroImage} 
@@ -51,7 +54,7 @@ export default function RouteDetail() {
           <Link href="/">
             <Button variant="secondary" size="sm" className="shadow-lg backdrop-blur-md bg-white/80 hover:bg-white flex gap-2 rounded-full">
               <ArrowLeft className="h-4 w-4" />
-              Zpět na mapu
+              Zpět na hlavní stránku
             </Button>
           </Link>
         </div>
@@ -71,12 +74,14 @@ export default function RouteDetail() {
               <div className="flex flex-wrap gap-6 text-muted-foreground text-sm">
                 <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span>{route.latitude.toFixed(6)}, {route.longitude.toFixed(6)}</span>
+                  <span>{route.latitude?.toFixed(6)}, {route.longitude?.toFixed(6)}</span>
                 </div>
-                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span>Přidáno: {new Date(route.createdAt).toLocaleDateString('cs-CZ')}</span>
-                </div>
+                {route.createdAt && (
+                  <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span>Přidáno: {new Date(route.createdAt).toLocaleDateString('cs-CZ')}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -113,7 +118,7 @@ export default function RouteDetail() {
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {route.suitableFor && route.suitableFor.length > 0 ? (
-                        route.suitableFor.map((item, i) => (
+                        route.suitableFor.map((item: string, i: number) => (
                           <span key={i} className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-medium capitalize">
                             {item}
                           </span>
@@ -128,7 +133,6 @@ export default function RouteDetail() {
             </div>
           </div>
 
-          {/* Map Section */}
           {route.embedUrl && (
             <div className="mt-12 mb-16">
               <h2 className="text-2xl font-headline font-bold mb-6 text-foreground flex items-center gap-2">
@@ -144,7 +148,6 @@ export default function RouteDetail() {
             </div>
           )}
 
-          {/* Photo Gallery */}
           {route.images && route.images.length > 0 && (
             <div className="mt-16">
               <h2 className="text-2xl font-headline font-bold mb-8 text-foreground flex items-center gap-2">
@@ -152,7 +155,7 @@ export default function RouteDetail() {
                 Fotogalerie
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {route.images.map((image, index) => (
+                {route.images.map((image: string, index: number) => (
                   <div 
                     key={index} 
                     className="relative aspect-[4/3] rounded-2xl overflow-hidden group cursor-pointer shadow-md transition-all hover:shadow-xl"
