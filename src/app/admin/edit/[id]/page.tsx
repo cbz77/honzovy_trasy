@@ -12,10 +12,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Sparkles, Upload, X, Loader2, Map as MapIcon, Info, Image as ImageIcon, Settings2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Upload, X, Loader2, Map as MapIcon, Info, Image as ImageIcon, Settings2, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { generateRouteDescription } from '@/ai/flows/generate-route-description';
+import { suggestPhotoCaptions } from '@/ai/flows/suggest-photo-captions';
 import Image from 'next/image';
 
 const SUITABLE_OPTIONS = [
@@ -35,6 +36,7 @@ export default function EditRoute() {
   const { data: route, isLoading: isRouteLoading } = useDoc(routeRef);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -150,6 +152,41 @@ export default function EditRoute() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const suggestCaptions = async () => {
+    if (formData.images.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Žádné fotky",
+        description: "Nejdříve nahrajte alespoň jednu fotografii.",
+      });
+      return;
+    }
+
+    setIsCapturing(true);
+    try {
+      const result = await suggestPhotoCaptions({
+        photos: formData.images
+      });
+      
+      if (result && result.captions && result.captions.length > 0) {
+        const aiText = "\n\nTip na popisky k fotkám:\n" + result.captions.map((c, i) => `${i + 1}. ${c}`).join('\n');
+        setFormData(prev => ({ ...prev, description: prev.description + aiText }));
+        toast({
+          title: "Popisky navrženy",
+          description: "AI navrhla popisky k vašim fotografiím a přidala je do popisu.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Chyba AI",
+        description: "Nepodařilo se navrhnout popisky.",
+      });
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -395,11 +432,24 @@ export default function EditRoute() {
         </Card>
 
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5 text-primary" />
               Fotografie (max 6)
             </CardTitle>
+            {formData.images.length > 0 && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-accent border-accent/20 hover:bg-accent/10 rounded-full gap-2"
+                onClick={suggestCaptions}
+                disabled={isCapturing}
+              >
+                {isCapturing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+                Navrhnout popisky AI
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
