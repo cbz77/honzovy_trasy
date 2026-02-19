@@ -1,0 +1,201 @@
+{
+  "entities": {
+    "RoutePoint": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoutePoint",
+      "type": "object",
+      "description": "Represents a specific point of interest along a tourist route within the 'Honzovy trasy' application, displayed on interactive maps.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RoutePoint entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tourist route point, e.g., 'Viewpoint at Sněžka' or 'Waterfall of Bílá Labe'."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed, comprehensive description of the route point, potentially enriched by the AI tool. This field supports rich text content."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude coordinate of the route point, essential for its placement on interactive maps."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude coordinate of the route point, essential for its placement on interactive maps."
+        },
+        "embedMapUrl": {
+          "type": "string",
+          "description": "The URL for an embedded map (e.g., from Google Maps or Mapy.cz) specifically displaying this route point's location or a related route segment on the detail page.",
+          "format": "uri"
+        },
+        "published": {
+          "type": "boolean",
+          "description": "A boolean flag indicating whether the route point is publicly visible on the main interactive map and accessible via its detail page. Draft points would be 'false'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp indicating when this route point record was initially created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp indicating the last time this route point record was modified.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "latitude",
+        "longitude",
+        "embedMapUrl",
+        "published",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Image": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Image",
+      "type": "object",
+      "description": "Represents an image associated with a specific RoutePoint, used to populate photo galleries on detail pages in 'Honzovy trasy'.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Image entity."
+        },
+        "routePointId": {
+          "type": "string",
+          "description": "Reference to the unique identifier of the RoutePoint entity this image is associated with. (Relationship: RoutePoint 1:N Image)"
+        },
+        "url": {
+          "type": "string",
+          "description": "The publicly accessible URL where the image file is hosted (e.g., on a CDN or cloud storage service).",
+          "format": "uri"
+        },
+        "altText": {
+          "type": "string",
+          "description": "Alternative text description for the image, crucial for accessibility (screen readers) and SEO purposes. Should briefly and accurately describe the image content."
+        },
+        "order": {
+          "type": "number",
+          "description": "An integer specifying the display order of this image within the gallery of its associated route point. Lower numbers typically appear first, supporting the requirement of up to 6 photos."
+        },
+        "uploadedAt": {
+          "type": "string",
+          "description": "The timestamp indicating when this image file was uploaded to the system.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "routePointId",
+        "url",
+        "uploadedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/roles_admin/{adminUid}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/AdminRole"
+          },
+          "description": "Stores the UIDs of users who possess administrative privileges within the application. The existence of a document at `/roles_admin/{uid}` grants admin access to the user with that UID. This supports DBAC (Database Access Control) and enables simple `exists()` checks in security rules.",
+          "params": [
+            {
+              "name": "adminUid",
+              "description": "The unique identifier (UID) of the user who is an administrator."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/published_route_points/{routePointId}",
+        "definition": {
+          "entityName": "RoutePoint",
+          "schema": {
+            "$ref": "#/backend/entities/RoutePoint"
+          },
+          "description": "Contains RoutePoint documents that are publicly visible on the main interactive map and accessible via their detail pages. Documents in this collection MUST have their 'published' field set to `true`. Public read access. Admin-only write access.",
+          "params": [
+            {
+              "name": "routePointId",
+              "description": "The unique identifier of the RoutePoint."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/published_route_points/{routePointId}/images/{imageId}",
+        "definition": {
+          "entityName": "Image",
+          "schema": {
+            "$ref": "#/backend/entities/Image"
+          },
+          "description": "Contains Image documents associated with a published RoutePoint. These images are publicly visible and populate photo galleries on published detail pages. Includes denormalized 'routePointId' (as part of the path) for clear ownership and authorization independence. Public read access. Admin-only write access.",
+          "params": [
+            {
+              "name": "routePointId",
+              "description": "The unique identifier of the parent RoutePoint."
+            },
+            {
+              "name": "imageId",
+              "description": "The unique identifier of the Image."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/draft_route_points/{routePointId}",
+        "definition": {
+          "entityName": "RoutePoint",
+          "schema": {
+            "$ref": "#/backend/entities/RoutePoint"
+          },
+          "description": "Contains RoutePoint documents that are currently in draft mode and are not publicly visible. Documents in this collection MUST have their 'published' field set to `false`. Access is restricted to authenticated administrators (read/write).",
+          "params": [
+            {
+              "name": "routePointId",
+              "description": "The unique identifier of the RoutePoint in draft status."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/draft_route_points/{routePointId}/images/{imageId}",
+        "definition": {
+          "entityName": "Image",
+          "schema": {
+            "$ref": "#/backend/entities/Image"
+          },
+          "description": "Contains Image documents associated with a draft RoutePoint. These images are only visible to and manageable by authenticated administrators. Includes denormalized 'routePointId' (as part of the path) for clear ownership and authorization independence. Admin-only read/write access.",
+          "params": [
+            {
+              "name": "routePointId",
+              "description": "The unique identifier of the parent RoutePoint (in draft status)."
+            },
+            {
+              "name": "imageId",
+              "description": "The unique identifier of the Image."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to provide secure, scalable, and debuggable access to 'Honzovy trasy' application data, strictly adhering to the core design principles. The primary strategy revolves around **Authorization Independence via Denormalization** and **Structural Segregation** to simplify security rules and ensure Query-Aware Policies (QAPs).\n\n**Authorization Independence (CRITICAL):** The most significant aspect is the segregation of 'RoutePoint' and 'Image' data into two distinct top-level collections: `/published_route_points` and `/draft_route_points`. This eliminates the need for `get()` calls in security rules to check the `published` status of a `RoutePoint`. The very path a document resides in (`/published_route_points` vs. `/draft_route_points`) intrinsically dictates its authorization posture (public vs. admin-only). This makes rules atomic, highly performant, and easy to debug, as a document's authorization can be determined solely by its own data and its direct path.\n\nFor admin roles, a dedicated collection `/roles_admin/{adminUid}` is used. This follows the **DBAC (No Custom Claims)** principle, storing roles in the database. Authorization checks for admin actions will simply involve an `exists()` check against this collection for the `request.auth.uid`, ensuring authorization independence without complex document lookups.\n\n**QAPs (Rules are not Filters):** This structure inherently supports QAPs. For public display, clients will query `/published_route_points` (and its subcollections for images). Because this collection *only* contains published data, any `list` operation on it will return only authorized, publicly visible documents. No client-side filtering of sensitive data is required or implicitly relied upon. Similarly, for administrative access, `list` operations on `/draft_route_points` will only be permitted for authenticated administrators, ensuring that no unauthorized drafts are exposed via query results. This radical segregation prevents accidental leakage of private data and simplifies frontend logic.\n\n**Structural Segregation (Homogeneous Security Posture):** This principle is applied by creating separate collections for published and draft content. All documents within `/published_route_points` share the same security requirements (public read), and all documents within `/draft_route_points` share another (admin read/write). The same applies to their respective `images` subcollections, ensuring that all data at a given path has a consistent access model.\n\n**Access Modeling:**\n*   **Global Roles (DBAC):** Implemented with `/roles_admin/{adminUid}` for managing who can access the administration features.\n*   **Public/Admin Data Segregation:** Achieved by `/published_route_points` (public read) and `/draft_route_points` (admin read/write), with nested `images` subcollections mirroring this access pattern.\n\n**Data Clarity and Predictability:** The `published` field within the `RoutePoint` entity is explicitly maintained, but its value is enforced by the collection it resides in. This avoids ambiguity and ensures data consistency between the document's state and its storage location."
+  }
+}
