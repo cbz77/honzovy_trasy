@@ -21,17 +21,13 @@ service cloud.firestore {
     // --- PRAVIDLA KOLEKCÍ ---
 
     match /roles_admin/{adminUid} {
-      // Uživatel může číst svůj vlastní dokument role pro ověření práv v aplikaci
+      // Uživatel může číst svůj vlastní dokument role
       allow get: if isSignedIn() && request.auth.uid == adminUid;
-      // Pouze admini mohou vidět seznam všech adminů
-      allow list: if isAdmin();
-      // Role se v aplikaci přímo neupravují
-      allow create, update, delete: if false;
+      allow list, write: if false;
     }
 
     match /published_route_points/{routePointId} {
-      // Čtení je veřejné pro všechny (pro zobrazení v katalogu a na mapě)
-      // To řeší i problém s "list" operací v administraci
+      // Veřejné čtení pro všechny (řeší i list v administraci)
       allow read: if true;
       
       // Vytvářet může jakýkoliv přihlášený uživatel
@@ -40,8 +36,8 @@ service cloud.firestore {
       // Upravovat a mazat může pouze autor trasy nebo administrátor
       allow update, delete: if isSignedIn() && (isAdmin() || isOwner(resource));
 
-      // Obrázky k trasám (v poli)
-      match /images/{imageId} {
+      // Obrázky k trasám (v poli nebo jako podkolekce, pokud by byla)
+      match /{allPaths=**} {
         allow read: if true;
         allow write: if isSignedIn();
       }
