@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, orderBy, where } from 'firebase/firestore';
 import { deleteDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain, Loader2, ShieldCheck, User } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -25,18 +26,44 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const router = useRouter();
 
+  // Redirect if not logged in
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  const routesQuery = useMemoFirebase(() => {
-    if (!db) return null;
-    return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
-  }, [db]);
+  // Check for admin role
+  const adminDocRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'roles_admin', user.uid);
+  }, [db, user]);
+  
+  const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
+  const isAdmin = !!adminRole;
 
-  const { data: routes, isLoading } = useCollection(routesQuery);
+  // Build query based on user role
+  const routesQuery = useMemoFirebase(() => {
+    if (!db || !user || isAdminRoleLoading) return null;
+    
+    // Admins see everything, regulars see only their own creations
+    if (isAdmin) {
+      // For collection-wide list, we just order by date
+      return query(
+        collection(db, 'published_route_points'), 
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      // Regular users are filtered by createdBy
+      return query(
+        collection(db, 'published_route_points'), 
+        where('createdBy', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+    }
+  }, [db, user?.uid, isAdmin, isAdminRoleLoading]);
+
+  const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
   const handleDelete = (id: string) => {
     if (confirm('Opravdu chcete tuto trasu smazat?')) {
@@ -49,7 +76,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isLoading) {
+  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading)) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -57,12 +84,26 @@ export default function AdminDashboard() {
     );
   }
 
+  if (!user) return null;
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-3xl font-headline font-bold text-foreground">Správa tras</h1>
-          <p className="text-muted-foreground mt-1">Zde můžete přidávat, upravovat a mazat trasy v katalogu.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-3xl font-headline font-bold text-foreground">Správa tras</h1>
+            {isAdmin && (
+              <Badge variant="secondary" className="flex gap-1 items-center bg-primary/10 text-primary border-none">
+                <ShieldCheck className="h-3 w-3" />
+                Admin
+              </Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {isAdmin 
+              ? "Jako administrátor vidíte a můžete spravovat trasy všech uživatelů." 
+              : "Zde můžete spravovat trasy, které jste vytvořili."}
+          </p>
         </div>
         <Link href="/admin/new">
           <Button className="bg-primary hover:bg-primary/90 flex gap-2 rounded-full px-6">
@@ -76,7 +117,7 @@ export default function AdminDashboard() {
         {!routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
-            <p className="text-xl text-muted-foreground">Nemáte žádné trasy.</p>
+            <p className="text-xl text-muted-foreground">Zatím zde nejsou žádné trasy k zobrazení.</p>
             <Link href="/admin/new">
               <Button variant="link" className="text-primary">Přidejte svou první trasu</Button>
             </Link>
@@ -86,6 +127,7 @@ export default function AdminDashboard() {
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[300px]">Název</TableHead>
+                {isAdmin && <TableHead>Autor (UID)</TableHead>}
                 <TableHead>GPS Souřadnice</TableHead>
                 <TableHead>Datum vytvoření</TableHead>
                 <TableHead className="text-right">Akce</TableHead>
@@ -99,9 +141,17 @@ export default function AdminDashboard() {
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <Mountain className="h-5 w-5" />
                       </div>
-                      {route.name}
+                      <span className="truncate max-w-[200px]">{route.name}</span>
                     </div>
                   </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
+                        <User className="h-3.5 w-3.5" />
+                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Neznámo")}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground text-sm">
                       <MapPin className="h-4 w-4" />

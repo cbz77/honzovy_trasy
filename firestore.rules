@@ -1,116 +1,49 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * HONZOVY TRASY - SECURITY RULES DOCUMENTATION
-     * 
-     * Core Philosophy:
-     * This ruleset implements a Structural Segregation model combined with Database-Level 
-     * Access Control (DBAC). Security is enforced by the physical location of the data 
-     * rather than complex logic within the documents themselves.
-     * 
-     * Data Structure:
-     * - /roles_admin/{uid}: Stores admin privileges.
-     * - /published_route_points/...: Publicly accessible content.
-     * - /draft_route_points/...: Private content restricted to administrators.
-     * 
-     * Key Security Decisions:
-     * 1. Structural Segregation: Content is physically separated into 'published' and 'draft' 
-     *    top-level collections. This ensures that public queries never accidentally leak 
-     *    draft data, satisfying Query-Aware Policy (QAP) requirements.
-     * 2. DBAC Roles: Admin status is determined by the existence of a document in the 
-     *    'roles_admin' collection, avoiding the need for Custom Claims.
-     * 3. Authorization Independence: Subcollections (images) mirror the security posture 
-     *    of their parent documents.
-     * 4. Prototyping Flexibility: Rules strictly enforce WHO can access data but do NOT 
-     *    validate the specific schema of content fields (names, descriptions, etc.) to 
-     *    allow for rapid frontend iteration.
-     */
+    // --- GLOBÁLNÍ POMOCNÉ FUNKCE ---
 
-    // --- GLOBAL HELPER FUNCTIONS ---
-
-    /** @description Checks if the user is authenticated with any provider. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user's UID exists in the admin roles collection. */
+    // Kontrola admina: existuje dokument s UID uživatele v kolekci roles_admin
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /** @description Combines admin check with a verify-existence check for updates/deletes. */
-    function isExistingAdmin() {
-      return isAdmin() && resource != null;
+    // Kontrola majitele: ID tvůrce v dokumentu odpovídá UID přihlášeného uživatele
+    function isOwner(resource) {
+      return isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
 
-    // --- COLLECTION RULES ---
+    // --- PRAVIDLA KOLEKCÍ ---
 
-    /**
-     * @description Administrative roles collection. Existence of a document grants admin privileges.
-     * @path /roles_admin/{adminUid}
-     * @allow (get) by authenticated admins to verify their own or others' status.
-     * @deny (write) by any user via the client. Admin roles should be managed via Admin SDK or Console.
-     * @principle Database-Level Access Control (DBAC).
-     */
     match /roles_admin/{adminUid} {
-      allow get: if isAdmin();
+      // Uživatel může číst svůj vlastní dokument role
+      allow get: if isSignedIn() && request.auth.uid == adminUid;
+      // Pouze admini mohou vidět seznam všech adminů
       allow list: if isAdmin();
-      allow create, update, delete: if false; // Managed via server-side/console for security.
+      // Role se v aplikaci přímo neupravují (nastavuje se ručně v konzoli)
+      allow create, update, delete: if false;
     }
 
-    /**
-     * @description Publicly visible tourist route points.
-     * @path /published_route_points/{routePointId}
-     * @allow (get, list) by anyone, including anonymous users.
-     * @allow (create, update, delete) only by authenticated administrators.
-     * @principle Structural Segregation (Published vs Draft).
-     */
     match /published_route_points/{routePointId} {
-      allow get, list: if true;
-      allow create: if isAdmin() && request.resource.data.id == routePointId;
-      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingAdmin();
+      // Čtení je veřejné pro všechny (pro zobrazení v katalogu a na mapě)
+      allow read: if true;
+      
+      // Vytvářet může jakýkoliv přihlášený uživatel
+      allow create: if isSignedIn();
+      
+      // Upravovat a mazat může pouze autor trasy nebo administrátor
+      allow update, delete: if isSignedIn() && (isAdmin() || isOwner(resource));
 
-      /**
-       * @description Images associated with published route points.
-       * @path /published_route_points/{routePointId}/images/{imageId}
-       * @allow (get, list) by anyone.
-       * @allow (create) if user is admin and relational IDs match.
-       * @principle Authorization Independence via path-based hierarchy.
-       */
+      // Obrázky k trasám
       match /images/{imageId} {
-        allow get, list: if true;
-        allow create: if isAdmin() && request.resource.data.routePointId == routePointId;
-        allow update: if isExistingAdmin() && request.resource.data.routePointId == resource.data.routePointId;
-        allow delete: if isExistingAdmin();
-      }
-    }
-
-    /**
-     * @description Private draft route points not yet ready for public consumption.
-     * @path /draft_route_points/{routePointId}
-     * @allow (read, write) only by authenticated administrators.
-     * @deny (read, write) for any non-admin user.
-     * @principle QAP (Rules are not filters) - separate collection ensures no accidental leakage.
-     */
-    match /draft_route_points/{routePointId} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin() && request.resource.data.id == routePointId;
-      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingAdmin();
-
-      /**
-       * @description Images associated with draft route points.
-       * @path /draft_route_points/{routePointId}/images/{imageId}
-       * @allow (read, write) restricted to administrators.
-       */
-      match /images/{imageId} {
-        allow get, list: if isAdmin();
-        allow create: if isAdmin() && request.resource.data.routePointId == routePointId;
-        allow update: if isExistingAdmin() && request.resource.data.routePointId == resource.data.routePointId;
-        allow delete: if isExistingAdmin();
+        allow read: if true;
+        allow write: if isSignedIn();
       }
     }
   }
