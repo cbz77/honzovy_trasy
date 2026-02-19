@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -128,7 +126,7 @@ export default function NewRoute() {
       toast({
         variant: "destructive",
         title: "Chyba AI",
-        description: "Nepodařilo se vygenerovat popis. Zkuste to prosím znovu.",
+        description: "Nepodařilo se vygenerovat popis.",
       });
     } finally {
       setIsGenerating(false);
@@ -156,7 +154,7 @@ export default function NewRoute() {
         setFormData(prev => ({ ...prev, description: prev.description + aiText }));
         toast({
           title: "Popisky navrženy",
-          description: "AI navrhla popisky k vašim fotografiím a přidala je do popisu.",
+          description: "AI navrhla popisky k vašim fotografiím.",
         });
       }
     } catch (error) {
@@ -170,7 +168,7 @@ export default function NewRoute() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.latitude || !formData.longitude) {
       toast({
@@ -201,18 +199,21 @@ export default function NewRoute() {
         updatedAt: new Date().toISOString(),
       };
 
-      setDocumentNonBlocking(docRef, payload, { merge: true });
+      await setDoc(docRef, payload);
 
       toast({
         title: "Trasa uložena",
         description: "Nová trasa byla úspěšně přidána do katalogu.",
       });
       router.push('/admin');
-    } catch (e) {
+    } catch (e: any) {
+      console.error(e);
       toast({
         variant: "destructive",
-        title: "Chyba",
-        description: "Při ukládání došlo k chybě.",
+        title: "Chyba při ukládání",
+        description: e.message?.includes("insufficient permissions") 
+          ? "Nemáte oprávnění k zápisu. Požádejte administrátora o přidělení role."
+          : "Při ukládání došlo k neočekávané chybě.",
       });
     } finally {
       setIsSubmitting(false);
@@ -371,7 +372,7 @@ export default function NewRoute() {
                 className="rounded-xl min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground">
-                Získejte kód pro vložení na Google Maps (Sdílet {'->'} Vložit mapu {'->'} zkopírujte URL z atributu src).
+                Získejte kód pro vložení na Google Maps (Sdílet {"->"} Vložit mapu {"->"} zkopírujte URL z atributu src).
               </p>
             </div>
           </CardContent>
