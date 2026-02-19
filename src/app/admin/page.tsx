@@ -25,14 +25,14 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Redirect if not logged in
+  // 1. Ověření přihlášení
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // Check for admin role
+  // 2. Načtení admin role
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
@@ -40,26 +40,22 @@ export default function AdminDashboard() {
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   
-  // Robust admin check
   const isAdmin = useMemo(() => {
-    return adminRole !== null && adminRole !== undefined;
+    return !!adminRole;
   }, [adminRole]);
 
-  // Build query based on user role - wait for auth and role check to settle
+  // 3. Sestavení dotazu - čím jednodušší, tím lépe pro pravidla
   const routesQuery = useMemoFirebase(() => {
-    // We strictly wait for user to be available and role check to complete
+    // Čekáme, dokud nevíme, kdo je uživatel a jakou má roli
     if (!db || !user || isAdminRoleLoading) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
-    // Admins see everything, regulars see only their own creations
     if (isAdmin) {
-      return query(
-        collectionRef, 
-        orderBy('createdAt', 'desc')
-      );
+      // Admin vidí vše
+      return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Regular users are strictly filtered by createdBy to satisfy security rules and UI needs
+      // Uživatel vidí jen své - tento dotaz musí odpovídat pravidlu isOwner
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -81,8 +77,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Loading state handling - show spinner while checking auth and role
-  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading && !routes)) {
+  if (isUserLoading || isAdminRoleLoading) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -120,7 +115,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
-        {!routes || routes.length === 0 ? (
+        {isRoutesLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : !routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
             <p className="text-xl text-muted-foreground">Zatím zde nejsou žádné trasy k zobrazení.</p>
@@ -154,7 +153,7 @@ export default function AdminDashboard() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
                         <User className="h-3.5 w-3.5" />
-                        {route.createdBy === user?.uid ? "Vy (Admin)" : "Uživatel"}
+                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy ? "Uživatel" : "Neznámý")}
                       </div>
                     </TableCell>
                   )}

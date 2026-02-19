@@ -20,14 +20,19 @@ service cloud.firestore {
 
     // --- PRAVIDLA KOLEKCÍ ---
 
+    match /users/{userId} {
+      // Uživatel může číst a psát pouze svůj vlastní profil
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
     match /roles_admin/{adminUid} {
-      // Uživatel může číst pouze své vlastní potvrzení role admina
-      allow get: if isSignedIn() && request.auth.uid == adminUid;
-      allow list, write: if false;
+      // Čtení role povoleno pouze danému uživateli
+      allow read: if isSignedIn() && request.auth.uid == adminUid;
+      allow write: if false; // Admini se nastavují pouze ručně v konzoli
     }
 
     match /published_route_points/{routePointId} {
-      // Katalog je veřejně čitelný pro všechny (hlavní stránka i detail)
+      // Veřejné čtení pro všechny (mapa i katalog)
       allow read: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
