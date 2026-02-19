@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
@@ -39,7 +39,11 @@ export default function AdminDashboard() {
   }, [db, user?.uid]);
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
-  const isAdmin = !!adminRole;
+  
+  // Robust admin check
+  const isAdmin = useMemo(() => {
+    return adminRole !== null && adminRole !== undefined;
+  }, [adminRole]);
 
   // Build query based on user role - wait for auth and role check to settle
   const routesQuery = useMemoFirebase(() => {
@@ -55,7 +59,7 @@ export default function AdminDashboard() {
         orderBy('createdAt', 'desc')
       );
     } else {
-      // Regular users are filtered by createdBy
+      // Regular users are strictly filtered by createdBy to satisfy security rules and UI needs
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),

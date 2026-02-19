@@ -27,7 +27,7 @@ service cloud.firestore {
     }
 
     match /published_route_points/{routePointId} {
-      // Hlavní stránka (katalog) - kdokoliv může číst seznam i jednotlivé detaily
+      // Katalog je veřejně čitelný pro všechny (hlavní stránka i detail)
       allow read: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
