@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -8,11 +9,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Upload, X, Loader2, Map as MapIcon, Info, Image as ImageIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowLeft, Sparkles, Upload, X, Loader2, Map as MapIcon, Info, Image as ImageIcon, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { generateRouteDescription } from '@/ai/flows/generate-route-description';
 import Image from 'next/image';
+
+const SUITABLE_OPTIONS = [
+  { id: 'pěší', label: 'Pěší' },
+  { id: 'cyklisté', label: 'Cyklisté' },
+  { id: 'rodiny', label: 'Rodiny' },
+];
 
 export default function NewRoute() {
   const router = useRouter();
@@ -26,6 +35,9 @@ export default function NewRoute() {
     longitude: '',
     embedUrl: '',
     description: '',
+    difficulty: 'Střední' as 'Lehká' | 'Střední' | 'Obtížná',
+    routeType: 'Okružní' as 'Okružní' | 'Přechod',
+    suitableFor: [] as string[],
     images: [] as string[]
   });
 
@@ -40,6 +52,15 @@ export default function NewRoute() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSuitableChange = (optionId: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      suitableFor: checked 
+        ? [...prev.suitableFor, optionId]
+        : prev.suitableFor.filter(id => id !== optionId)
+    }));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +150,9 @@ export default function NewRoute() {
         longitude: parseFloat(formData.longitude),
         embedUrl: formData.embedUrl,
         description: formData.description,
+        difficulty: formData.difficulty,
+        routeType: formData.routeType,
+        suitableFor: formData.suitableFor,
         images: formData.images
       });
 
@@ -210,6 +234,71 @@ export default function NewRoute() {
                   required
                   className="rounded-xl"
                 />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Podrobnosti a náročnost
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Náročnost</Label>
+                <Select 
+                  value={formData.difficulty} 
+                  onValueChange={(v: any) => setFormData(prev => ({ ...prev, difficulty: v }))}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Vyberte náročnost" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Lehká">Lehká</SelectItem>
+                    <SelectItem value="Střední">Střední</SelectItem>
+                    <SelectItem value="Obtížná">Obtížná</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Typ trasy</Label>
+                <Select 
+                  value={formData.routeType} 
+                  onValueChange={(v: any) => setFormData(prev => ({ ...prev, routeType: v }))}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Vyberte typ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Okružní">Okružní</SelectItem>
+                    <SelectItem value="Přechod">Přechod</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Vhodné pro (možno vybrat více)</Label>
+              <div className="flex flex-wrap gap-6">
+                {SUITABLE_OPTIONS.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={option.id} 
+                      checked={formData.suitableFor.includes(option.id)}
+                      onCheckedChange={(checked) => handleSuitableChange(option.id, !!checked)}
+                    />
+                    <label 
+                      htmlFor={option.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {option.label}
+                    </label>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

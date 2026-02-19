@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getRouteById, RoutePoint } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon, Gauge, Path, Users } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -94,16 +95,32 @@ export default function RouteDetail() {
                 <h3 className="font-headline font-bold mb-4 text-primary">Detaily</h3>
                 <ul className="space-y-4 text-sm">
                   <li className="flex justify-between border-b border-primary/10 pb-2">
-                    <span className="text-muted-foreground">Náročnost</span>
-                    <span className="font-semibold">Střední</span>
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Gauge className="h-4 w-4" /> Náročnost
+                    </span>
+                    <span className="font-semibold">{route.difficulty || 'Střední'}</span>
                   </li>
                   <li className="flex justify-between border-b border-primary/10 pb-2">
-                    <span className="text-muted-foreground">Typ trasy</span>
-                    <span className="font-semibold">Okružní</span>
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <MapIcon className="h-4 w-4" /> Typ trasy
+                    </span>
+                    <span className="font-semibold">{route.routeType || 'Okružní'}</span>
                   </li>
-                  <li className="flex justify-between border-b border-primary/10 pb-2">
-                    <span className="text-muted-foreground">Vhodné pro</span>
-                    <span className="font-semibold">Rodiny, pěší</span>
+                  <li className="flex flex-col gap-2 border-b border-primary/10 pb-2">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Vhodné pro
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {route.suitableFor && route.suitableFor.length > 0 ? (
+                        route.suitableFor.map((item, i) => (
+                          <span key={i} className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-medium capitalize">
+                            {item}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-semibold">Všechny</span>
+                      )}
+                    </div>
                   </li>
                 </ul>
               </div>

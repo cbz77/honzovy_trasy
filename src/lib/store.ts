@@ -9,6 +9,9 @@ export interface RoutePoint {
   embedUrl: string;
   description: string;
   images: string[];
+  difficulty: 'Lehká' | 'Střední' | 'Obtížná';
+  routeType: 'Okružní' | 'Přechod';
+  suitableFor: string[];
   createdAt: string;
 }
 
