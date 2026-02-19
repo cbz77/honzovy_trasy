@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -239,7 +238,7 @@ export default function NewRoute() {
                 className="rounded-xl"
               />
               <p className="text-xs text-muted-foreground">
-                Získejte kód pro vložení na Google Maps (Sdílet -> Vložit mapu -> zkopírujte URL z atributu src).
+                Získejte kód pro vložení na Google Maps (Sdílet {"->"} Vložit mapu {"->"} zkopírujte URL z atributu src).
               </p>
             </div>
           </CardContent>
