@@ -25,14 +25,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // 1. Ověření přihlášení
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // 2. Načtení admin role
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
@@ -44,25 +42,24 @@ export default function AdminDashboard() {
     return !!adminRole;
   }, [adminRole]);
 
-  // 3. Sestavení dotazu - čím jednodušší, tím lépe pro pravidla
   const routesQuery = useMemoFirebase(() => {
-    // Čekáme, dokud nevíme, kdo je uživatel a jakou má roli
-    if (!db || !user || isAdminRoleLoading) return null;
+    // Čekáme, dokud nevíme jistě stav uživatele a jeho role
+    if (!db || !user || isUserLoading || isAdminRoleLoading) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
-      // Admin vidí vše
+      // Admin vidí vše - dotaz odpovídá veřejnému čtení
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Uživatel vidí jen své - tento dotaz musí odpovídat pravidlu isOwner
+      // Běžný uživatel vidí jen své - dotaz odpovídá isOwner v pravidlech
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user?.uid, isAdmin, isAdminRoleLoading]);
+  }, [db, user?.uid, isUserLoading, isAdmin, isAdminRoleLoading]);
 
   const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
@@ -132,7 +129,7 @@ export default function AdminDashboard() {
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[300px]">Název</TableHead>
-                {isAdmin && <TableHead>Autor</TableHead>}
+                {isAdmin && <TableHead>Autor (UID)</TableHead>}
                 <TableHead>GPS Souřadnice</TableHead>
                 <TableHead>Datum vytvoření</TableHead>
                 <TableHead className="text-right">Akce</TableHead>
@@ -153,7 +150,7 @@ export default function AdminDashboard() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
                         <User className="h-3.5 w-3.5" />
-                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy ? "Uživatel" : "Neznámý")}
+                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Anonym")}
                       </div>
                     </TableCell>
                   )}

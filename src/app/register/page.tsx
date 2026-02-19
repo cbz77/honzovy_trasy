@@ -42,19 +42,35 @@ export default function Register() {
     generateCaptcha();
   }, []);
 
-  // Automatický zápis uživatele do databáze po úspěšné registraci
   useEffect(() => {
-    if (user && !isUserLoading) {
-      const userRef = doc(db, 'users', user.uid);
-      setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || formData.name,
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
-      router.push('/admin');
-    }
-  }, [user, isUserLoading, db, router, formData.name]);
+    const createUserDoc = async () => {
+      if (user && !isUserLoading) {
+        setIsLoading(true);
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || formData.name || 'Uživatel',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          }, { merge: true });
+          
+          toast({
+            title: "Registrace úspěšná",
+            description: "Vítejte v Honzových trasách!",
+          });
+          router.push('/admin');
+        } catch (error) {
+          console.error("Error creating user doc:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    createUserDoc();
+  }, [user, isUserLoading, db, router, formData.name, toast]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

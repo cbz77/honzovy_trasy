@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,21 +19,40 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/admin');
-    }
-  }, [user, isUserLoading, router]);
+    const syncUser = async () => {
+      if (user && !isUserLoading) {
+        setIsLoading(true);
+        try {
+          // Při každém přihlášení zkontrolujeme/aktualizujeme záznam uživatele
+          const userRef = doc(db, 'users', user.uid);
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            lastLogin: new Date().toISOString(),
+          }, { merge: true });
+          
+          router.push('/admin');
+        } catch (error) {
+          console.error("Sync user error:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    syncUser();
+  }, [user, isUserLoading, db, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      initiateEmailSignIn(auth, email, password);
+      await initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -43,10 +63,10 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      initiateGoogleSignIn(auth);
+      await initiateGoogleSignIn(auth);
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -26,13 +26,13 @@ service cloud.firestore {
     }
 
     match /roles_admin/{adminUid} {
-      // Čtení role povoleno pouze danému uživateli
+      // Čtení role povoleno přihlášenému uživateli pro jeho vlastní UID
       allow read: if isSignedIn() && request.auth.uid == adminUid;
-      allow write: if false; // Admini se nastavují pouze ručně v konzoli
+      allow write: if false; 
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny (mapa i katalog)
+      // Veřejné čtení pro všechny - kritické pro katalog a mapu
       allow read: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
