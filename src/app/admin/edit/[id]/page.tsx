@@ -230,7 +230,7 @@ export default function EditRoute() {
         variant: "destructive",
         title: "Chyba",
         description: e.message?.includes("insufficient permissions") 
-          ? "Nemáte oprávnění k úpravě této trasy."
+          ? "Nemáte oprávnění k úpravě této trasy. Musíte být přihlášeni."
           : "Při ukládání došlo k neočekávané chybě.",
       });
     } finally {

@@ -212,7 +212,7 @@ export default function NewRoute() {
         variant: "destructive",
         title: "Chyba při ukládání",
         description: e.message?.includes("insufficient permissions") 
-          ? "Nemáte oprávnění k zápisu. Požádejte administrátora o přidělení role."
+          ? "Pro uložení trasy musíte být přihlášeni."
           : "Při ukládání došlo k neočekávané chybě.",
       });
     } finally {
