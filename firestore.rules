@@ -26,7 +26,7 @@ service cloud.firestore {
     }
 
     match /published_route_points/{routePointId} {
-      // Kdokoliv může prohlížet trasy v katalogu
+      // Veřejné čtení pro všechny
       allow get, list: if true;
       
       // Vytvářet může kdokoliv přihlášený
@@ -36,8 +36,8 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || isOwner(resource);
 
       match /images/{imageId} {
-        allow get, list: if true;
-        allow create, update, delete: if isSignedIn();
+        allow read: if true;
+        allow write: if isSignedIn();
       }
     }
   }

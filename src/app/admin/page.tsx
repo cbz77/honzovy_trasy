@@ -42,7 +42,9 @@ export default function AdminDashboard() {
   const isAdmin = !!adminRole;
 
   const routesQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    // Čekáme na načtení uživatele i jeho role, abychom zvolili správný dotaz
+    if (!db || !user || isAdminRoleLoading) return null;
+    
     // Pokud je uživatel admin, vidí vše. Jinak jen své.
     if (isAdmin) {
       return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
@@ -53,7 +55,7 @@ export default function AdminDashboard() {
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user, isAdmin]);
+  }, [db, user, isAdmin, isAdminRoleLoading]);
 
   const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
@@ -68,7 +70,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isRoutesLoading || isAdminRoleLoading) {
+  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading)) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -107,7 +109,7 @@ export default function AdminDashboard() {
         {!routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
-            <p className="text-xl text-muted-foreground">Nemáte žádné trasy.</p>
+            <p className="text-xl text-muted-foreground">Zatím zde nejsou žádné trasy k zobrazení.</p>
             <Link href="/admin/new">
               <Button variant="link" className="text-primary">Přidejte svou první trasu</Button>
             </Link>
