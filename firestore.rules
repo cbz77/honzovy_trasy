@@ -3,38 +3,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
+    // --- GLOBÁLNÍ POMOCNÉ FUNKCE ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Kontrola admina: existuje dokument s UID uživatele v kolekci roles_admin
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
+    // Kontrola majitele: ID tvůrce v dokumentu odpovídá UID přihlášeného uživatele
     function isOwner(resource) {
       return isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
 
-    // --- COLLECTION RULES ---
+    // --- PRAVIDLA KOLEKCÍ ---
 
     match /roles_admin/{adminUid} {
+      // Uživatel může číst svůj vlastní dokument role
       allow get: if isSignedIn() && request.auth.uid == adminUid;
+      // Pouze admini mohou vidět seznam všech adminů
       allow list: if isAdmin();
+      // Role se v aplikaci přímo neupravují (nastavuje se ručně v konzoli)
       allow create, update, delete: if false;
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny
-      allow get, list: if true;
+      // Čtení je veřejné pro všechny (pro zobrazení v katalogu a na mapě)
+      allow read: if true;
       
-      // Vytvářet může kdokoliv přihlášený
+      // Vytvářet může jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
-      // Upravovat a mazat může autor nebo admin
-      allow update, delete: if isAdmin() || isOwner(resource);
+      // Upravovat a mazat může pouze autor trasy nebo administrátor
+      allow update, delete: if isSignedIn() && (isAdmin() || isOwner(resource));
 
+      // Obrázky k trasám
       match /images/{imageId} {
         allow read: if true;
         allow write: if isSignedIn();
