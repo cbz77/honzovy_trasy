@@ -1,0 +1,41 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "route-1",
+      "description": "Mountain trail through pine forest",
+      "imageUrl": "https://picsum.photos/seed/101/1200/800",
+      "imageHint": "mountain forest"
+    },
+    {
+      "id": "route-2",
+      "description": "Scenic overlook of a lake",
+      "imageUrl": "https://picsum.photos/seed/102/1200/800",
+      "imageHint": "lake mountain"
+    },
+    {
+      "id": "route-3",
+      "description": "Old stone bridge over a stream",
+      "imageUrl": "https://picsum.photos/seed/103/1200/800",
+      "imageHint": "stone bridge"
+    },
+    {
+      "id": "route-4",
+      "description": "Wildflowers in a mountain meadow",
+      "imageUrl": "https://picsum.photos/seed/104/1200/800",
+      "imageHint": "mountain meadow"
+    },
+    {
+      "id": "route-5",
+      "description": "Foggy sunrise in the valley",
+      "imageUrl": "https://picsum.photos/seed/105/1200/800",
+      "imageHint": "foggy sunrise"
+    },
+    {
+      "id": "route-6",
+      "description": "Rocky path leading to a peak",
+      "imageUrl": "https://picsum.photos/seed/106/1200/800",
+      "imageHint": "rocky peak"
+    }
+  ]
+}
