@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase';
@@ -26,7 +27,6 @@ export default function Register() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Simple math captcha
   const [captchaQuestion, setCaptchaQuestion] = useState({ a: 0, b: 0 });
   
   const generateCaptcha = () => {
@@ -47,10 +47,9 @@ export default function Register() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check Captcha
     if (parseInt(captchaValue) !== (captchaQuestion.a + captchaQuestion.b)) {
       toast({
         variant: "destructive",
@@ -73,7 +72,7 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      initiateEmailSignUp(auth, formData.email, formData.password);
+      await initiateEmailSignUp(auth, formData.email, formData.password);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -84,15 +83,19 @@ export default function Register() {
     }
   };
 
-  const handleGoogleRegister = () => {
+  const handleGoogleRegister = async () => {
     setIsLoading(true);
     try {
-      initiateGoogleSignIn(auth);
+      await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      let message = "Registrace přes Google se nezdařilo.";
+      if (error.code === 'auth/unauthorized-domain') {
+        message = "Doména není autorizována ve Firebase konzoli (Authorized domains).";
+      }
       toast({
         variant: "destructive",
         title: "Chyba registrace",
-        description: "Registrace přes Google se nezdařilo.",
+        description: message,
       });
       setIsLoading(false);
     }
