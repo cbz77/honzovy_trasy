@@ -1,30 +1,35 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { getRoutes, RoutePoint } from '@/lib/store';
+import { useState, useMemo } from 'react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Mountain, X, Search } from 'lucide-react';
+import { MapPin, ArrowRight, Mountain, X, Search, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Home() {
-  const [routes, setRoutes] = useState<RoutePoint[]>([]);
+  const db = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterSuitable, setFilterSuitable] = useState<string>('all');
 
-  useEffect(() => {
-    setRoutes(getRoutes());
-  }, []);
+  const routesQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
+  }, [db]);
+
+  const { data: routes, isLoading } = useCollection(routesQuery);
 
   const filteredRoutes = useMemo(() => {
+    if (!routes) return [];
     return routes.filter(route => {
-      const matchesSearch = route.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = route.name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDifficulty = filterDifficulty === 'all' || route.difficulty === filterDifficulty;
       const matchesType = filterType === 'all' || route.routeType === filterType;
       const matchesSuitable = filterSuitable === 'all' || (route.suitableFor && route.suitableFor.includes(filterSuitable));
@@ -44,7 +49,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section with Beautiful Landscape Background */}
       <section className="relative h-[80vh] w-full overflow-hidden flex items-end">
         <div className="absolute inset-0 z-0">
           <Image 
@@ -79,14 +83,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Routes Catalog Section */}
       <section id="catalog" className="container mx-auto px-4 py-16">
         <div className="flex flex-col mb-10">
           <h2 className="text-3xl font-headline font-bold text-foreground">Katalog tras</h2>
           <p className="text-muted-foreground mt-2">Filtrujte trasy podle vašich preferencí a náročnosti.</p>
         </div>
 
-        {/* Filters Bar */}
         <div className="bg-card/50 backdrop-blur-sm p-6 rounded-[2rem] border mb-12 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="space-y-2 lg:col-span-2">
@@ -156,7 +158,11 @@ export default function Home() {
           )}
         </div>
 
-        {filteredRoutes.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-24">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ) : filteredRoutes.length === 0 ? (
           <div className="text-center py-24 border-2 border-dashed rounded-[3rem] bg-card/30">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-40" />
             <p className="text-xl text-muted-foreground">Žádné trasy neodpovídají vybraným filtrům.</p>
@@ -194,7 +200,7 @@ export default function Home() {
                     </CardTitle>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                       <MapPin className="h-3 w-3 text-primary" />
-                      {route.latitude.toFixed(4)}, {route.longitude.toFixed(4)}
+                      {route.latitude?.toFixed(4)}, {route.longitude?.toFixed(4)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -202,7 +208,7 @@ export default function Home() {
                       {route.description}
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-auto">
-                      {route.suitableFor && route.suitableFor.map((tag, i) => (
+                      {route.suitableFor && route.suitableFor.map((tag: string, i: number) => (
                         <span key={i} className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">
                           {tag}
                         </span>

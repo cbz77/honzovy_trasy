@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
-import { getRoutes, deleteRoute, RoutePoint } from '@/lib/store';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { deleteDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -16,32 +17,45 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminDashboard() {
-  const [routes, setRoutes] = useState<RoutePoint[]>([]);
+  const { user, isUserLoading } = useUser();
+  const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    // Auth check simulation
-    const user = localStorage.getItem('honzovy_user');
-    if (!user) {
+    if (!isUserLoading && !user) {
       router.push('/login');
-      return;
     }
-    setRoutes(getRoutes());
-  }, [router]);
+  }, [user, isUserLoading, router]);
+
+  const routesQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
+  }, [db]);
+
+  const { data: routes, isLoading } = useCollection(routesQuery);
 
   const handleDelete = (id: string) => {
     if (confirm('Opravdu chcete tuto trasu smazat?')) {
-      deleteRoute(id);
-      setRoutes(getRoutes());
+      const docRef = doc(db, 'published_route_points', id);
+      deleteDocumentNonBlocking(docRef);
       toast({
         title: "Trasa smazána",
         description: "Trasa byla úspěšně odstraněna z katalogu.",
       });
     }
   };
+
+  if (isUserLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-20 flex justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -59,7 +73,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
-        {routes.length === 0 ? (
+        {!routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
             <p className="text-xl text-muted-foreground">Nemáte žádné trasy.</p>
@@ -91,11 +105,11 @@ export default function AdminDashboard() {
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground text-sm">
                       <MapPin className="h-4 w-4" />
-                      {route.latitude.toFixed(4)}, {route.longitude.toFixed(4)}
+                      {route.latitude?.toFixed(4)}, {route.longitude?.toFixed(4)}
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(route.createdAt).toLocaleDateString('cs-CZ')}
+                    {route.createdAt ? new Date(route.createdAt).toLocaleDateString('cs-CZ') : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

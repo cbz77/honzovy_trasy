@@ -4,20 +4,15 @@
 import Link from 'next/link';
 import { Map, LayoutDashboard, LogIn, UserPlus, LogOut, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user } = useUser();
+  const auth = useAuth();
 
-  useEffect(() => {
-    // Simple check for simulation
-    const user = localStorage.getItem('honzovy_user');
-    setIsLoggedIn(!!user);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('honzovy_user');
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await signOut(auth);
     window.location.href = '/';
   };
 
@@ -37,7 +32,7 @@ export function Navbar() {
             </Button>
           </Link>
           
-          {isLoggedIn ? (
+          {user ? (
             <>
               <Link href="/admin">
                 <Button variant="ghost" size="sm" className="flex gap-2">
