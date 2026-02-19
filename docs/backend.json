@@ -41,6 +41,10 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "createdBy": {
+          "type": "string",
+          "description": "UID of the user who created this route."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -68,7 +72,8 @@
   },
   "auth": {
     "providers": [
-      "password"
+      "password",
+      "google"
     ]
   },
   "firestore": {

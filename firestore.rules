@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,6 +13,10 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
+    function isOwner(resource) {
+      return isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
     // --- COLLECTION RULES ---
 
     match /roles_admin/{adminUid} {
@@ -21,22 +26,18 @@ service cloud.firestore {
     }
 
     match /published_route_points/{routePointId} {
-      // Kdokoliv může číst
+      // Kdokoliv může prohlížet trasy v katalogu
       allow get, list: if true;
-      // Jakýkoliv přihlášený uživatel může vytvářet, upravovat a mazat
-      allow create, update, delete: if isSignedIn();
+      
+      // Vytvářet může kdokoliv přihlášený
+      allow create: if isSignedIn();
+      
+      // Upravovat a mazat může autor nebo admin
+      allow update, delete: if isAdmin() || isOwner(resource);
 
       match /images/{imageId} {
         allow get, list: if true;
         allow create, update, delete: if isSignedIn();
-      }
-    }
-
-    match /draft_route_points/{routePointId} {
-      allow get, list, create, update, delete: if isSignedIn();
-
-      match /images/{imageId} {
-        allow get, list, create, update, delete: if isSignedIn();
       }
     }
   }

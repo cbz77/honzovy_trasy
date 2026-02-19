@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -170,6 +171,7 @@ export default function NewRoute() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     if (!formData.name || !formData.latitude || !formData.longitude) {
       toast({
         variant: "destructive",
@@ -195,6 +197,7 @@ export default function NewRoute() {
         routeType: formData.routeType,
         suitableFor: formData.suitableFor,
         images: formData.images,
+        createdBy: user.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -212,7 +215,7 @@ export default function NewRoute() {
         variant: "destructive",
         title: "Chyba při ukládání",
         description: e.message?.includes("insufficient permissions") 
-          ? "Pro uložení trasy musíte být přihlášeni."
+          ? "Pro uložení trasy musíte být přihlášeni a mít oprávnění."
           : "Při ukládání došlo k neočekávané chybě.",
       });
     } finally {
