@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -25,10 +26,9 @@ export default function Login() {
 
   useEffect(() => {
     const syncUser = async () => {
-      if (user && !isUserLoading) {
+      if (user && !isUserLoading && db) {
         setIsLoading(true);
         try {
-          // Při každém přihlášení zkontrolujeme/aktualizujeme záznam uživatele
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
             uid: user.uid,
@@ -63,17 +63,16 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
+  const handleGoogleLogin = () => {
+    // No setIsLoading(true) here because it causes a re-render that might block the popup/redirect
     try {
-      await initiateGoogleSignIn(auth);
+      initiateGoogleSignIn(auth);
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
         description: "Přihlášení přes Google se nezdařilo.",
       });
-      setIsLoading(false);
     }
   };
 
@@ -142,7 +141,6 @@ export default function Login() {
             variant="outline"
             className="w-full h-12 rounded-xl border-2 hover:bg-muted flex gap-3 font-semibold"
             onClick={handleGoogleLogin}
-            disabled={isLoading}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
