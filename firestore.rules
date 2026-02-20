@@ -1,9 +1,8 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
+    // --- GLOBÁLNÍ POMOCNÉ FUNKCE ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -17,16 +16,10 @@ service cloud.firestore {
       return isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
 
-    // --- COLLECTION RULES ---
-
-    match /roles_admin/{adminUid} {
-      allow get: if isSignedIn() && request.auth.uid == adminUid;
-      allow list: if isAdmin();
-      allow create, update, delete: if false;
-    }
+    // --- PRAVIDLA KOLEKCÍ ---
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny
+      // Veřejné čtení (rozděleno na get a list pro maximální kompatibilitu s dotazy)
       allow get, list: if true;
       
       // Vytvářet může kdokoliv přihlášený
@@ -39,6 +32,18 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isSignedIn();
       }
+    }
+
+    match /roles_admin/{adminUid} {
+      allow get: if isSignedIn() && request.auth.uid == adminUid;
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isAdmin();
     }
   }
 }

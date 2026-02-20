@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -32,20 +31,18 @@ export default function AdminDashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // Kontrola, zda je uživatel admin
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
   }, [db, user]);
+  
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
 
   const isAdmin = !!adminRole;
 
   const routesQuery = useMemoFirebase(() => {
-    // Čekáme na načtení uživatele i jeho role, abychom zvolili správný dotaz
     if (!db || !user || isAdminRoleLoading) return null;
     
-    // Pokud je uživatel admin, vidí vše. Jinak jen své.
     if (isAdmin) {
       return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
     } else {
