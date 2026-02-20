@@ -48,17 +48,14 @@ export default function AdminDashboard() {
 
   // Memoized query based on user role
   const routesQuery = useMemoFirebase(() => {
-    // We wait for user status AND admin check to complete to avoid rule violations
     if (!db || !user?.uid || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
-      // Admin sees everything
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
       // Regular user sees only their own routes
-      // IMPORTANT: This requires an index on (createdBy ASC, createdAt DESC)
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -80,7 +77,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Global loading state while checking identity
   if (isUserLoading || (user && isAdmin === undefined)) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">

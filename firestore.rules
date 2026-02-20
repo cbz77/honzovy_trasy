@@ -16,18 +16,15 @@ service cloud.firestore {
     // --- PRAVIDLA KOLEKCÍ ---
 
     match /users/{userId} {
-      // Uživatel může číst a psát pouze svůj vlastní profil
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /roles_admin/{adminUid} {
-      // Čtení role povoleno přihlášenému uživateli pro jeho vlastní UID
       allow read: if isSignedIn() && request.auth.uid == adminUid;
       allow write: if false; 
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejný katalog: kdokoliv může číst seznam i detail
       // Explicitní rozdělení get a list pro maximální kompatibilitu s dotazy
       allow get: if true;
       allow list: if true;
