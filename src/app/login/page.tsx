@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -24,18 +25,30 @@ export default function Login() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
+  // Debugging auth state
+  useEffect(() => {
+    console.log("Login: Stav uživatele se změnil:", { user: user?.uid, isUserLoading });
+  }, [user, isUserLoading]);
+
   // Explicitly check for redirect result on mount
   useEffect(() => {
     const handleRedirectResult = async () => {
-      if (!auth) return;
+      if (!auth) {
+        console.warn("Login: Auth instance není dostupná pro kontrolu redirectu");
+        return;
+      }
+      
+      console.log("Login: Kontroluji výsledek Google redirectu...");
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          console.log("Úspěšné přihlášení přes přesměrování Google");
-          // Synchronization will happen in the next effect when `user` updates
+          console.log("Login: Úspěšné přihlášení přes Google (Redirect result):", result.user.uid);
+          // Sync and redirect will be handled by the next useEffect when 'user' updates
+        } else {
+          console.log("Login: Žádný výsledek redirectu (není chyba, běžný stav)");
         }
       } catch (error: any) {
-        console.error("Chyba při zpracování přesměrování Google:", error);
+        console.error("Login: Chyba při zpracování přesměrování Google:", error);
         toast({
           variant: "destructive",
           title: "Chyba Google přihlášení",
@@ -50,6 +63,7 @@ export default function Login() {
   useEffect(() => {
     const syncUser = async () => {
       if (user && db) {
+        console.log("Login: Synchronizuji uživatele do Firestore...", user.uid);
         try {
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
@@ -58,9 +72,10 @@ export default function Login() {
             lastLogin: new Date().toISOString(),
           }, { merge: true });
           
+          console.log("Login: Synchronizace OK, přesměrovávám do /admin");
           router.push('/admin');
         } catch (error) {
-          console.error("Chyba při synchronizaci uživatele:", error);
+          console.error("Login: Chyba při synchronizaci uživatele:", error);
         }
       }
     };
@@ -70,10 +85,12 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log("Login: Spouštím e-mailové přihlášení:", email);
     
     try {
       await initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
+      console.error("Login: Chyba e-mailového přihlášení:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -85,9 +102,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    console.log("Login: Spouštím Google Redirect přihlášení...");
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      console.error("Login: Chyba při spouštění Google přihlášení:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -97,10 +116,21 @@ export default function Login() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Ověřuji přihlášení...</p>
+      </div>
+    );
+  }
+
+  // If already logged in, the useEffect will redirect. Show loading until it happens.
+  if (user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Přesměrovávám do administrace...</p>
       </div>
     );
   }
