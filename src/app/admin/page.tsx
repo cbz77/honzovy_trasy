@@ -38,24 +38,20 @@ export default function AdminDashboard() {
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   
-  // Explicit checking for admin status - wait until loading is finished
   const isAdmin = useMemo(() => {
     if (isAdminRoleLoading) return undefined;
     return !!adminRole;
   }, [adminRole, isAdminRoleLoading]);
 
   const routesQuery = useMemoFirebase(() => {
-    // Crucial: We must wait for user identity AND their admin role check to finish
-    // to avoid "Insufficient Permissions" on the first render for new users.
     if (!db || !user || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
-      // Admin can see everything
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Regular users only see their own - this filter MUST match the security rules
+      // Pro běžné uživatele filtrujeme podle createdBy - tento dotaz vyžaduje index (createdBy ASC, createdAt DESC)
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
