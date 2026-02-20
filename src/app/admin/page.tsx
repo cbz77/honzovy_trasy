@@ -25,33 +25,40 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const router = useRouter();
 
+  // Redirect if not logged in
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
+  // Memoized reference for admin check
   const adminDocRef = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user?.uid) return null;
     return doc(db, 'roles_admin', user.uid);
   }, [db, user?.uid]);
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   
+  // Stabilized admin status
   const isAdmin = useMemo(() => {
     if (isAdminRoleLoading) return undefined;
     return !!adminRole;
   }, [adminRole, isAdminRoleLoading]);
 
+  // Memoized query based on user role
   const routesQuery = useMemoFirebase(() => {
-    if (!db || !user || isUserLoading || isAdmin === undefined) return null;
+    // We wait for user status AND admin check to complete to avoid rule violations
+    if (!db || !user?.uid || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
+      // Admin sees everything
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Pro běžné uživatele filtrujeme podle createdBy - tento dotaz vyžaduje index (createdBy ASC, createdAt DESC)
+      // Regular user sees only their own routes
+      // IMPORTANT: This requires an index on (createdBy ASC, createdAt DESC)
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -73,7 +80,8 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isAdmin === undefined) {
+  // Global loading state while checking identity
+  if (isUserLoading || (user && isAdmin === undefined)) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

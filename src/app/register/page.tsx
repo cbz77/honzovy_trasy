@@ -42,6 +42,7 @@ export default function Register() {
     generateCaptcha();
   }, []);
 
+  // Handle synchronization and redirection after registration
   useEffect(() => {
     const syncUser = async () => {
       if (user && !isUserLoading && db) {
@@ -100,6 +101,7 @@ export default function Register() {
   };
 
   const handleGoogleRegister = async () => {
+    setIsLoading(true);
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
@@ -108,15 +110,16 @@ export default function Register() {
         title: "Chyba registrace",
         description: "Nepodařilo se spustit Google registraci.",
       });
+      setIsLoading(false);
     }
   };
 
-  if (isUserLoading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
-
-  if (user) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (isUserLoading || user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
