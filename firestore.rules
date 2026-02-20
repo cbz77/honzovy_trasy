@@ -28,13 +28,14 @@ service cloud.firestore {
 
     match /published_route_points/{routePointId} {
       // Veřejný katalog: kdokoliv může číst seznam i detail
-      // Explicitně rozdělujeme read na get a list pro lepší kompatibilitu s dotazy
-      allow get, list: if true;
+      // Explicitní rozdělení get a list pro maximální kompatibilitu s dotazy
+      allow get: if true;
+      allow list: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
-      // Úprava a smazání - pouze administrátor nebo autor (pokud je přihlášen)
+      // Úprava a smazání - pouze administrátor nebo autor (podle createdBy)
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
   }

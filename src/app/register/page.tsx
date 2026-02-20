@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -44,10 +43,26 @@ export default function Register() {
   }, []);
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/admin');
-    }
-  }, [user, isUserLoading, router]);
+    const syncUser = async () => {
+      if (user && !isUserLoading && db) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            name: formData.name || user.displayName || 'Nový dobrodruh',
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          }, { merge: true });
+          
+          router.push('/admin');
+        } catch (error) {
+          console.error("Sync user error:", error);
+        }
+      }
+    };
+    syncUser();
+  }, [user, isUserLoading, db, router, formData.name]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,24 +100,22 @@ export default function Register() {
   };
 
   const handleGoogleRegister = async () => {
-    setIsLoading(true);
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
-      let message = "Registrace přes Google se nezdařilo.";
-      if (error.code === 'auth/unauthorized-domain') {
-        message = "Doména není autorizována ve Firebase konzoli (Authorized domains).";
-      }
       toast({
         variant: "destructive",
         title: "Chyba registrace",
-        description: message,
+        description: "Nepodařilo se spustit Google registraci.",
       });
-      setIsLoading(false);
     }
   };
 
   if (isUserLoading) {
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (user) {
     return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
