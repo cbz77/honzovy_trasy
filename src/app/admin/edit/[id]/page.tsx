@@ -378,6 +378,77 @@ export default function EditRoute() {
           </CardContent>
         </Card>
 
+        <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Popis trasy
+            </CardTitle>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              className="text-primary border-primary/20 hover:bg-primary/10 rounded-full gap-2"
+              onClick={generateAIContent}
+              disabled={isGenerating}
+            >
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Pomoc AI
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Textarea 
+                id="description" 
+                name="description" 
+                rows={8}
+                placeholder="Popište krásy této trasy..." 
+                value={formData.description}
+                onChange={handleInputChange}
+                className="rounded-xl resize-none"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              Fotografie (max 6)
+            </CardTitle>
+            {formData.images.length > 0 && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="text-accent border-accent/20 hover:bg-accent/10 rounded-full gap-2"
+                onClick={suggestCaptions}
+                disabled={isCapturing}
+              >
+                {isCapturing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+                Navrhnout popisky AI
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {formData.images.map((img, idx) => (
+                <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-sm group">
+                  <Image src={img} alt={`Preview ${idx}`} fill className="object-cover" />
+                  <button 
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute top-2 right-2 bg-destructive text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end gap-4 pt-4 pb-12">
           <Link href="/admin">
             <Button type="button" variant="ghost" className="rounded-full px-8">Zrušit</Button>

@@ -32,13 +32,19 @@ export default function Login() {
         const result = await getRedirectResult(auth);
         if (result?.user) {
           console.log("Úspěšné přihlášení přes přesměrování Google");
+          // Synchronization will happen in the next effect when `user` updates
         }
       } catch (error: any) {
         console.error("Chyba při zpracování přesměrování Google:", error);
+        toast({
+          variant: "destructive",
+          title: "Chyba Google přihlášení",
+          description: error.message || "Nepodařilo se dokončit přihlášení přes Google.",
+        });
       }
     };
     handleRedirectResult();
-  }, [auth]);
+  }, [auth, toast]);
 
   // Sync user data to Firestore and redirect to admin when logged in
   useEffect(() => {
