@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -43,34 +44,10 @@ export default function Register() {
   }, []);
 
   useEffect(() => {
-    const createUserDoc = async () => {
-      if (user && !isUserLoading) {
-        setIsLoading(true);
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || formData.name || 'Uživatel',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          }, { merge: true });
-          
-          toast({
-            title: "Registrace úspěšná",
-            description: "Vítejte v Honzových trasách!",
-          });
-          router.push('/admin');
-        } catch (error) {
-          console.error("Error creating user doc:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    createUserDoc();
-  }, [user, isUserLoading, db, router, formData.name, toast]);
+    if (!isUserLoading && user) {
+      router.push('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,10 +89,14 @@ export default function Register() {
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      let message = "Registrace přes Google se nezdařilo.";
+      if (error.code === 'auth/unauthorized-domain') {
+        message = "Doména není autorizována ve Firebase konzoli (Authorized domains).";
+      }
       toast({
         variant: "destructive",
         title: "Chyba registrace",
-        description: "Registrace přes Google se nezdařila.",
+        description: message,
       });
       setIsLoading(false);
     }
