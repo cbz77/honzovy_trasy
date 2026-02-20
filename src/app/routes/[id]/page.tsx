@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useDoc, useFirestore } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, Calendar, Camera, Mountain, Map as MapIcon, Gauge, Users, Loader2 } from 'lucide-react';
@@ -12,7 +12,12 @@ import Image from 'next/image';
 export default function RouteDetail() {
   const { id } = useParams();
   const db = useFirestore();
-  const routeRef = id ? doc(db, 'published_route_points', id as string) : null;
+  
+  const routeRef = useMemoFirebase(() => {
+    if (!db || !id) return null;
+    return doc(db, 'published_route_points', id as string);
+  }, [db, id]);
+
   const { data: route, isLoading } = useDoc(routeRef);
 
   if (isLoading) {

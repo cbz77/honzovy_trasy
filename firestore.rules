@@ -3,42 +3,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
+    // --- POMOCNÉ FUNKCE ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Kontrola admina: dokument v roles_admin odpovídá UID uživatele
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isOwner(resource) {
-      return isSignedIn() && resource.data.createdBy == request.auth.uid;
+    // --- PRAVIDLA KOLEKCÍ ---
+
+    match /users/{userId} {
+      // Uživatel může číst a psát pouze svůj vlastní profil
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- COLLECTION RULES ---
-
     match /roles_admin/{adminUid} {
-      allow get: if isSignedIn() && request.auth.uid == adminUid;
-      allow list: if isAdmin();
-      allow create, update, delete: if false;
+      // Čtení role povoleno přihlášenému uživateli pro jeho vlastní UID
+      allow read: if isSignedIn() && request.auth.uid == adminUid;
+      allow write: if false; 
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny
+      // Veřejný katalog: kdokoliv může číst seznam i detail
       allow get, list: if true;
       
-      // Vytvářet může kdokoliv přihlášený
+      // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
-      // Upravovat a mazat může autor nebo admin
-      allow update, delete: if isAdmin() || isOwner(resource);
-
-      match /images/{imageId} {
-        allow read: if true;
-        allow write: if isSignedIn();
-      }
+      // Úprava a smazání - pouze administrátor nebo autor (pokud je přihlášen)
+      // Důležité: resource.data.createdBy musí odpovídat UID přihlášeného uživatele
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
   }
 }

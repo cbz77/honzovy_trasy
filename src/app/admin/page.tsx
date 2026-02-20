@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
@@ -32,30 +32,34 @@ export default function AdminDashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // Kontrola, zda je uživatel admin
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
-  }, [db, user]);
+  }, [db, user?.uid]);
+  
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
-
-  const isAdmin = !!adminRole;
+  
+  const isAdmin = useMemo(() => {
+    if (isAdminRoleLoading) return undefined;
+    return !!adminRole;
+  }, [adminRole, isAdminRoleLoading]);
 
   const routesQuery = useMemoFirebase(() => {
-    // Čekáme na načtení uživatele i jeho role, abychom zvolili správný dotaz
-    if (!db || !user || isAdminRoleLoading) return null;
+    if (!db || !user || isUserLoading || isAdmin === undefined) return null;
     
-    // Pokud je uživatel admin, vidí vše. Jinak jen své.
+    const collectionRef = collection(db, 'published_route_points');
+    
     if (isAdmin) {
-      return query(collection(db, 'published_route_points'), orderBy('createdAt', 'desc'));
+      return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
+      // Regular users MUST filter by their UID to satisfy security rules
       return query(
-        collection(db, 'published_route_points'), 
+        collectionRef, 
         where('createdBy', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user, isAdmin, isAdminRoleLoading]);
+  }, [db, user?.uid, isUserLoading, isAdmin]);
 
   const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
@@ -70,13 +74,15 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading)) {
+  if (isUserLoading || isAdmin === undefined) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -106,7 +112,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
-        {!routes || routes.length === 0 ? (
+        {isRoutesLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : !routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
             <p className="text-xl text-muted-foreground">Zatím zde nejsou žádné trasy k zobrazení.</p>
@@ -119,7 +129,7 @@ export default function AdminDashboard() {
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[300px]">Název</TableHead>
-                {isAdmin && <TableHead>Vytvořil (UID)</TableHead>}
+                {isAdmin && <TableHead>Autor (UID)</TableHead>}
                 <TableHead>GPS Souřadnice</TableHead>
                 <TableHead>Datum vytvoření</TableHead>
                 <TableHead className="text-right">Akce</TableHead>
@@ -133,14 +143,14 @@ export default function AdminDashboard() {
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <Mountain className="h-5 w-5" />
                       </div>
-                      {route.name}
+                      <span className="truncate max-w-[200px]">{route.name}</span>
                     </div>
                   </TableCell>
                   {isAdmin && (
                     <TableCell>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[150px]">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
                         <User className="h-3.5 w-3.5" />
-                        {route.createdBy === user?.uid ? "Vy (Admin)" : route.createdBy || "Neznámo"}
+                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Anonym")}
                       </div>
                     </TableCell>
                   )}

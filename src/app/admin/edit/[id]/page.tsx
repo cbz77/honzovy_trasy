@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,11 @@ export default function EditRoute() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   
-  const routeRef = id ? doc(db, 'published_route_points', id as string) : null;
+  const routeRef = useMemoFirebase(() => {
+    if (!db || !id) return null;
+    return doc(db, 'published_route_points', id as string);
+  }, [db, id]);
+
   const { data: route, isLoading: isRouteLoading } = useDoc(routeRef);
 
   const [isGenerating, setIsGenerating] = useState(false);
