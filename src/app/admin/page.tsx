@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/badge';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -39,27 +39,29 @@ export default function AdminDashboard() {
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   
   const isAdmin = useMemo(() => {
+    if (isAdminRoleLoading) return undefined;
     return !!adminRole;
-  }, [adminRole]);
+  }, [adminRole, isAdminRoleLoading]);
 
   const routesQuery = useMemoFirebase(() => {
     // Čekáme, dokud nevíme jistě stav uživatele a jeho role
-    if (!db || !user || isUserLoading || isAdminRoleLoading) return null;
+    // Pokud je isAdmin undefined, ještě nevíme, zda je uživatel admin nebo ne
+    if (!db || !user || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
-      // Admin vidí vše - dotaz odpovídá veřejnému čtení
+      // Admin vidí vše
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Běžný uživatel vidí jen své - dotaz odpovídá isOwner v pravidlech
+      // Běžný uživatel vidí jen své - dotaz musí přesně odpovídat filtrům v rules pokud by byly striktní
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user?.uid, isUserLoading, isAdmin, isAdminRoleLoading]);
+  }, [db, user?.uid, isUserLoading, isAdmin]);
 
   const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
@@ -74,7 +76,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isAdminRoleLoading) {
+  if (isUserLoading || isAdmin === undefined) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

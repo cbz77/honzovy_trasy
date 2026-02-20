@@ -32,8 +32,10 @@ service cloud.firestore {
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny - kritické pro katalog a mapu
-      allow read: if true;
+      // EXPLICITNÍ ROZDĚLENÍ READ NA GET A LIST
+      // Povolujeme veřejné čtení detailu i seznamu (katalogu)
+      allow get: if true;
+      allow list: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
