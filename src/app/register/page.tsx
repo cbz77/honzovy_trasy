@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase';
-import { getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,25 +47,6 @@ export default function Register() {
   useEffect(() => {
     console.log("Register: Stav uživatele se změnil:", { user: user?.uid, isUserLoading });
   }, [user, isUserLoading]);
-
-  // Explicitly check for redirect result on mount
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      if (!auth) return;
-      console.log("Register: Kontroluji výsledek Google redirectu...");
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Register: Úspěšná registrace/přihlášení přes Google:", result.user.uid);
-        } else {
-          console.log("Register: Žádný výsledek redirectu");
-        }
-      } catch (error: any) {
-        console.error("Register: Chyba při zpracování přesměrování Google:", error);
-      }
-    };
-    handleRedirectResult();
-  }, [auth]);
 
   // Handle synchronization and redirection after registration
   useEffect(() => {
