@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, orderBy, where } from 'firebase/firestore';
 import { deleteDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain, Loader2, ShieldCheck, User } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, ExternalLink, Mountain, Loader2, ShieldCheck, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -39,20 +38,24 @@ export default function AdminDashboard() {
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
   
+  // Explicit checking for admin status - wait until loading is finished
   const isAdmin = useMemo(() => {
     if (isAdminRoleLoading) return undefined;
     return !!adminRole;
   }, [adminRole, isAdminRoleLoading]);
 
   const routesQuery = useMemoFirebase(() => {
+    // Crucial: We must wait for user identity AND their admin role check to finish
+    // to avoid "Insufficient Permissions" on the first render for new users.
     if (!db || !user || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
+      // Admin can see everything
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Regular users MUST filter by their UID to satisfy security rules
+      // Regular users only see their own - this filter MUST match the security rules
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -129,7 +132,7 @@ export default function AdminDashboard() {
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[300px]">Název</TableHead>
-                {isAdmin && <TableHead>Autor (UID)</TableHead>}
+                {isAdmin && <TableHead>Autor</TableHead>}
                 <TableHead>GPS Souřadnice</TableHead>
                 <TableHead>Datum vytvoření</TableHead>
                 <TableHead className="text-right">Akce</TableHead>
@@ -149,7 +152,7 @@ export default function AdminDashboard() {
                   {isAdmin && (
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
-                        <User className="h-3.5 w-3.5" />
+                        <UserIcon className="h-3.5 w-3.5" />
                         {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Anonym")}
                       </div>
                     </TableCell>
