@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
+import { getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,10 +24,32 @@ export default function Login() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Handle synchronization and redirection after login
+  // Explicitly check for redirect result on mount
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      if (!auth) return;
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Úspěšné přihlášení přes přesměrování Google");
+          // Synchronization will happen in the next effect when `user` updates
+        }
+      } catch (error: any) {
+        console.error("Chyba při zpracování přesměrování Google:", error);
+        toast({
+          variant: "destructive",
+          title: "Chyba Google přihlášení",
+          description: error.message || "Nepodařilo se dokončit přihlášení přes Google.",
+        });
+      }
+    };
+    handleRedirectResult();
+  }, [auth, toast]);
+
+  // Sync user data to Firestore and redirect to admin when logged in
   useEffect(() => {
     const syncUser = async () => {
-      if (user && !isUserLoading && db) {
+      if (user && db) {
         try {
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
@@ -37,12 +60,12 @@ export default function Login() {
           
           router.push('/admin');
         } catch (error) {
-          console.error("Sync user error:", error);
+          console.error("Chyba při synchronizaci uživatele:", error);
         }
       }
     };
     syncUser();
-  }, [user, isUserLoading, db, router]);
+  }, [user, db, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +86,6 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Redirect method is more reliable than popup
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
       toast({
@@ -75,7 +97,6 @@ export default function Login() {
     }
   };
 
-  // While waiting for user status, show loading
   if (isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase';
+import { getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,22 @@ export default function Register() {
   useEffect(() => {
     generateCaptcha();
   }, []);
+
+  // Explicitly check for redirect result on mount
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      if (!auth) return;
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Úspěšná registrace přes přesměrování Google");
+        }
+      } catch (error: any) {
+        console.error("Chyba při zpracování přesměrování Google:", error);
+      }
+    };
+    handleRedirectResult();
+  }, [auth]);
 
   // Handle synchronization and redirection after registration
   useEffect(() => {

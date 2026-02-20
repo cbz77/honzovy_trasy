@@ -234,7 +234,7 @@ export default function EditRoute() {
         variant: "destructive",
         title: "Chyba",
         description: e.message?.includes("insufficient permissions") 
-          ? "Nemáte oprávnění k úpravě této trasy. Musíte být přihlášeni."
+          ? "Nemáte oprávnění k úpravě této trasy."
           : "Při ukládání došlo k neočekávané chybě.",
       });
     } finally {
@@ -379,32 +379,6 @@ export default function EditRoute() {
         </Card>
 
         <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapIcon className="h-5 w-5 text-primary" />
-              Mapa
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="embedUrl">HTML Embed kód mapy (celý iframe) *</Label>
-              <Textarea 
-                id="embedUrl" 
-                name="embedUrl" 
-                placeholder='<iframe src="https://www.google.com/maps/embed?..." ...></iframe>' 
-                value={formData.embedUrl}
-                onChange={handleInputChange}
-                required
-                className="rounded-xl min-h-[100px]"
-              />
-              <p className="text-xs text-muted-foreground">
-                Získejte kód pro vložení na Google Maps (Sdílet {"->"} Vložit mapu {"->"} zkopírujte URL z atributu src).
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -471,20 +445,6 @@ export default function EditRoute() {
                   </button>
                 </div>
               ))}
-              {formData.images.length < 6 && (
-                <label className="border-2 border-dashed border-primary/20 bg-primary/5 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:bg-primary/10 transition-colors">
-                  <Upload className="h-8 w-8 text-primary/40 mb-2" />
-                  <span className="text-xs font-medium text-primary/60">Nahrát foto</span>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept="image/*" 
-                    multiple 
-                    onChange={handleImageUpload} 
-                    disabled={formData.images.length >= 6}
-                  />
-                </label>
-              )}
             </div>
           </CardContent>
         </Card>
