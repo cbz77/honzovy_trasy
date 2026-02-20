@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -17,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
@@ -26,42 +25,41 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
-  // Check for admin role
   const adminDocRef = useMemoFirebase(() => {
     if (!db || !user) return null;
     return doc(db, 'roles_admin', user.uid);
-  }, [db, user]);
+  }, [db, user?.uid]);
   
   const { data: adminRole, isLoading: isAdminRoleLoading } = useDoc(adminDocRef);
-  const isAdmin = !!adminRole;
+  
+  const isAdmin = useMemo(() => {
+    return !!adminRole;
+  }, [adminRole]);
 
-  // Build query based on user role
   const routesQuery = useMemoFirebase(() => {
-    if (!db || !user || isAdminRoleLoading) return null;
+    // Čekáme, dokud nevíme jistě stav uživatele a jeho role
+    if (!db || !user || isUserLoading || isAdminRoleLoading) return null;
     
-    // Admins see everything, regulars see only their own creations
+    const collectionRef = collection(db, 'published_route_points');
+    
     if (isAdmin) {
-      // For collection-wide list, we just order by date
-      return query(
-        collection(db, 'published_route_points'), 
-        orderBy('createdAt', 'desc')
-      );
+      // Admin vidí vše - dotaz odpovídá veřejnému čtení
+      return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Regular users are filtered by createdBy
+      // Běžný uživatel vidí jen své - dotaz odpovídá isOwner v pravidlech
       return query(
-        collection(db, 'published_route_points'), 
+        collectionRef, 
         where('createdBy', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
     }
-  }, [db, user?.uid, isAdmin, isAdminRoleLoading]);
+  }, [db, user?.uid, isUserLoading, isAdmin, isAdminRoleLoading]);
 
   const { data: routes, isLoading: isRoutesLoading } = useCollection(routesQuery);
 
@@ -76,7 +74,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || isAdminRoleLoading || (user && isRoutesLoading)) {
+  if (isUserLoading || isAdminRoleLoading) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -114,7 +112,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
-        {!routes || routes.length === 0 ? (
+        {isRoutesLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : !routes || routes.length === 0 ? (
           <div className="text-center py-20">
             <Mountain className="h-16 w-16 mx-auto text-muted mb-4 opacity-50" />
             <p className="text-xl text-muted-foreground">Zatím zde nejsou žádné trasy k zobrazení.</p>
@@ -148,7 +150,7 @@ export default function AdminDashboard() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate max-w-[120px]">
                         <User className="h-3.5 w-3.5" />
-                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Neznámo")}
+                        {route.createdBy === user?.uid ? "Vy (Admin)" : (route.createdBy || "Anonym")}
                       </div>
                     </TableCell>
                   )}
