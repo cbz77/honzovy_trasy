@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
@@ -28,6 +29,7 @@ export default function AdminDashboard() {
   // Redirect if not logged in
   useEffect(() => {
     if (!isUserLoading && !user) {
+      console.log("Admin: Uživatel není přihlášen, přesměrovávám na /login");
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
@@ -53,9 +55,11 @@ export default function AdminDashboard() {
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
+      console.log("Admin: Načítám všechny trasy (režim administrátor)");
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Regular user sees only their own routes
+      console.log("Admin: Načítám pouze trasy autora:", user.uid);
+      // Regular user sees only their own routes - must use where to match rules
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -79,8 +83,9 @@ export default function AdminDashboard() {
 
   if (isUserLoading || (user && isAdmin === undefined)) {
     return (
-      <div className="container mx-auto px-4 py-20 flex justify-center">
+      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Ověřuji oprávnění...</p>
       </div>
     );
   }
@@ -116,8 +121,9 @@ export default function AdminDashboard() {
 
       <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
         {isRoutesLoading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Načítám trasy...</p>
           </div>
         ) : !routes || routes.length === 0 ? (
           <div className="text-center py-20">

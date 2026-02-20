@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -43,17 +44,25 @@ export default function Register() {
     generateCaptcha();
   }, []);
 
+  // Debugging auth state
+  useEffect(() => {
+    console.log("Register: Stav uživatele se změnil:", { user: user?.uid, isUserLoading });
+  }, [user, isUserLoading]);
+
   // Explicitly check for redirect result on mount
   useEffect(() => {
     const handleRedirectResult = async () => {
       if (!auth) return;
+      console.log("Register: Kontroluji výsledek Google redirectu...");
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          console.log("Úspěšná registrace přes přesměrování Google");
+          console.log("Register: Úspěšná registrace/přihlášení přes Google:", result.user.uid);
+        } else {
+          console.log("Register: Žádný výsledek redirectu");
         }
       } catch (error: any) {
-        console.error("Chyba při zpracování přesměrování Google:", error);
+        console.error("Register: Chyba při zpracování přesměrování Google:", error);
       }
     };
     handleRedirectResult();
@@ -63,6 +72,7 @@ export default function Register() {
   useEffect(() => {
     const syncUser = async () => {
       if (user && !isUserLoading && db) {
+        console.log("Register: Synchronizuji nového uživatele do Firestore...", user.uid);
         try {
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
@@ -73,9 +83,10 @@ export default function Register() {
             lastLogin: new Date().toISOString(),
           }, { merge: true });
           
+          console.log("Register: Synchronizace OK, přesměrovávám do /admin");
           router.push('/admin');
         } catch (error) {
-          console.error("Sync user error:", error);
+          console.error("Register: Sync user error:", error);
         }
       }
     };
@@ -105,9 +116,11 @@ export default function Register() {
     }
 
     setIsLoading(true);
+    console.log("Register: Spouštím e-mailovou registraci:", formData.email);
     try {
       await initiateEmailSignUp(auth, formData.email, formData.password);
     } catch (error: any) {
+      console.error("Register: Chyba při registraci:", error);
       toast({
         variant: "destructive",
         title: "Chyba registrace",
@@ -119,9 +132,11 @@ export default function Register() {
 
   const handleGoogleRegister = async () => {
     setIsLoading(true);
+    console.log("Register: Spouštím Google Redirect registraci...");
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      console.error("Register: Chyba Google registrace:", error);
       toast({
         variant: "destructive",
         title: "Chyba registrace",
@@ -131,10 +146,20 @@ export default function Register() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Ověřuji registraci...</p>
+      </div>
+    );
+  }
+
+  if (user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Vítejte! Přesměrovávám do administrace...</p>
       </div>
     );
   }
