@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
-import { getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +18,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isRedirectChecking, setIsRedirectChecking] = useState(true);
   const router = useRouter();
   const auth = useAuth();
   const db = useFirestore();
@@ -28,42 +26,14 @@ export default function Login() {
 
   // Debug log auth state
   useEffect(() => {
-    console.log("Login: Stav uživatele se změnil:", { user: user?.uid, isUserLoading });
+    console.log("Login: User state change:", { user: user?.uid, isUserLoading });
   }, [user, isUserLoading]);
-
-  // Handle Google Redirect Result
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      if (!auth) return;
-      
-      console.log("Login: Kontroluji výsledek Google redirectu...");
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Login: Úspěšně zachycen Google uživatel:", result.user.uid);
-          // Sync happens in separate useEffect when 'user' updates
-        } else {
-          console.log("Login: Žádný výsledek redirectu (pokračuji běžně)");
-        }
-      } catch (error: any) {
-        console.error("Login: Chyba při zpracování přesměrování Google:", error);
-        toast({
-          variant: "destructive",
-          title: "Chyba přihlášení",
-          description: error.message || "Nepodařilo se dokončit přihlášení přes Google.",
-        });
-      } finally {
-        setIsRedirectChecking(false);
-      }
-    };
-    handleRedirectResult();
-  }, [auth, toast]);
 
   // Sync user data to Firestore and redirect to admin
   useEffect(() => {
     const syncUser = async () => {
       if (user && db) {
-        console.log("Login: Synchronizuji uživatele do Firestore a přesměrovávám...", user.uid);
+        console.log("Login: Syncing user to Firestore and redirecting...", user.uid);
         try {
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
@@ -74,7 +44,7 @@ export default function Login() {
           
           router.push('/admin');
         } catch (error) {
-          console.error("Login: Chyba při synchronizaci uživatele:", error);
+          console.error("Login: Error syncing user:", error);
         }
       }
     };
@@ -84,12 +54,12 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("Login: Spouštím e-mailové přihlášení:", email);
+    console.log("Login: Initiating email sign-in:", email);
     
     try {
       await initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
-      console.error("Login: Chyba e-mailového přihlášení:", error);
+      console.error("Login: Email sign-in error:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -101,11 +71,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    console.log("Login: Spouštím Google Redirect přihlášení...");
+    console.log("Login: Initiating Google Redirect sign-in...");
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
-      console.error("Login: Chyba při spouštění Google přihlášení:", error);
+      console.error("Login: Error initiating Google sign-in:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -115,7 +85,7 @@ export default function Login() {
     }
   };
 
-  if (isUserLoading || isRedirectChecking) {
+  if (isUserLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
