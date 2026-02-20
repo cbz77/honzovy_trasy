@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { Badge } from '@/badge';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
       // Admin vidí vše
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Běžný uživatel vidí jen své - dotaz musí přesně odpovídat filtrům v rules pokud by byly striktní
+      // Běžný uživatel vidí jen své
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
