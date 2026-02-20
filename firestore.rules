@@ -13,11 +13,6 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Kontrola majitele: pole createdBy v dokumentu odpovídá UID uživatele
-    function isOwner(resource) {
-      return isSignedIn() && resource.data.createdBy == request.auth.uid;
-    }
-
     // --- PRAVIDLA KOLEKCÍ ---
 
     match /users/{userId} {
@@ -33,7 +28,7 @@ service cloud.firestore {
 
     match /published_route_points/{routePointId} {
       // EXPLICITNÍ ROZDĚLENÍ READ NA GET A LIST
-      // Povolujeme veřejné čtení detailu i seznamu (katalogu)
+      // Povolujeme veřejné čtení detailu (get) i seznamu (list/query) pro všechny
       allow get: if true;
       allow list: if true;
       
@@ -41,7 +36,8 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // Úprava a smazání - pouze autor trasy nebo administrátor
-      allow update, delete: if isAdmin() || isOwner(resource);
+      // Kontrolujeme, zda data v databázi obsahují správné ID tvůrce
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
   }
 }

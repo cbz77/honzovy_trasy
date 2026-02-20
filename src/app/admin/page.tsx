@@ -44,17 +44,16 @@ export default function AdminDashboard() {
   }, [adminRole, isAdminRoleLoading]);
 
   const routesQuery = useMemoFirebase(() => {
-    // Čekáme, dokud nevíme jistě stav uživatele a jeho role
-    // Pokud je isAdmin undefined, ještě nevíme, zda je uživatel admin nebo ne
+    // Klíčové: Čekáme, dokud nevíme jistě stav uživatele a jeho role (isAdmin !== undefined)
     if (!db || !user || isUserLoading || isAdmin === undefined) return null;
     
     const collectionRef = collection(db, 'published_route_points');
     
     if (isAdmin) {
-      // Admin vidí vše
+      // Admin vidí vše seřazené podle data
       return query(collectionRef, orderBy('createdAt', 'desc'));
     } else {
-      // Běžný uživatel vidí jen své
+      // Běžný uživatel vidí pouze trasy, které sám vytvořil
       return query(
         collectionRef, 
         where('createdBy', '==', user.uid),
@@ -76,6 +75,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // Zobrazujeme loader, dokud nevíme, kdo je přihlášen a jakou má roli
   if (isUserLoading || isAdmin === undefined) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center">
