@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,11 +12,6 @@ service cloud.firestore {
     // Kontrola admina: dokument v roles_admin odpovídá UID uživatele
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    // Kontrola majitele: pole createdBy v dokumentu odpovídá UID uživatele
-    function isOwner(resource) {
-      return isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
 
     // --- PRAVIDLA KOLEKCÍ ---
@@ -32,14 +28,15 @@ service cloud.firestore {
     }
 
     match /published_route_points/{routePointId} {
-      // Veřejné čtení pro všechny - kritické pro katalog a mapu
-      allow read: if true;
+      // Veřejný katalog: kdokoliv může číst seznam i detail
+      allow get, list: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
-      // Úprava a smazání - pouze autor trasy nebo administrátor
-      allow update, delete: if isAdmin() || isOwner(resource);
+      // Úprava a smazání - pouze administrátor nebo autor (pokud je přihlášen)
+      // Důležité: resource.data.createdBy musí odpovídat UID přihlášeného uživatele
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
   }
 }
