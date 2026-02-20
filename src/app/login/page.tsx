@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,46 +19,26 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
-  const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Debug log auth state
+  // Redirect if user is already logged in
   useEffect(() => {
-    console.log("Login: User state change:", { user: user?.uid, isUserLoading });
-  }, [user, isUserLoading]);
-
-  // Sync user data to Firestore and redirect to admin
-  useEffect(() => {
-    const syncUser = async () => {
-      if (user && db) {
-        console.log("Login: Syncing user to Firestore and redirecting...", user.uid);
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            lastLogin: new Date().toISOString(),
-          }, { merge: true });
-          
-          router.push('/admin');
-        } catch (error) {
-          console.error("Login: Error syncing user:", error);
-        }
-      }
-    };
-    syncUser();
-  }, [user, db, router]);
+    if (user && !isUserLoading) {
+      console.log("Login: Uživatel je přihlášen, přesměrovávám na /admin");
+      router.push('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("Login: Initiating email sign-in:", email);
+    console.log("Login: Spouštím e-mailové přihlášení:", email);
     
     try {
       await initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
-      console.error("Login: Email sign-in error:", error);
+      console.error("Login: Chyba při přihlášení e-mailem:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -71,11 +50,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    console.log("Login: Initiating Google Redirect sign-in...");
+    console.log("Login: Spouštím Google Redirect přihlášení...");
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
-      console.error("Login: Error initiating Google sign-in:", error);
+      console.error("Login: Chyba při spuštění Google přihlášení:", error);
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
@@ -85,6 +64,7 @@ export default function Login() {
     }
   };
 
+  // Show a loading indicator while checking auth status
   if (isUserLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -94,6 +74,8 @@ export default function Login() {
     );
   }
 
+  // If user is logged in, show a redirecting message.
+  // This covers the case where the redirect happens after the initial check.
   if (user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
