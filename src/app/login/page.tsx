@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -68,10 +69,14 @@ export default function Login() {
     try {
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
+      let message = "Přihlášení přes Google se nezdařilo.";
+      if (error.code === 'auth/unauthorized-domain') {
+        message = "Doména není autorizována ve Firebase konzoli (Authorized domains).";
+      }
       toast({
         variant: "destructive",
         title: "Chyba přihlášení",
-        description: "Přihlášení přes Google se nezdařilo.",
+        description: message,
       });
       setIsLoading(false);
     }
