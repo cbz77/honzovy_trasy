@@ -81,7 +81,10 @@ export default function AdminDashboard() {
     }
   };
 
-  if (isUserLoading || (user && isAdmin === undefined)) {
+  // Improved loading check to wait for admin role verification
+  const isAuthenticating = isUserLoading || (user && isAdmin === undefined);
+
+  if (isAuthenticating) {
     return (
       <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
