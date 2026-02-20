@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { LogIn, Compass, ShieldCheck, Loader2 } from 'lucide-react';
+import { Compass, ShieldCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
@@ -23,9 +23,9 @@ export default function Login() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
+  // Handle synchronization and redirection after login
   useEffect(() => {
     const syncUser = async () => {
-      // Pokud máme přihlášeného uživatele, zapíšeme ho do DB a přesměrujeme do adminu
       if (user && !isUserLoading && db) {
         try {
           const userRef = doc(db, 'users', user.uid);
@@ -61,8 +61,9 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
-      // Používáme Redirect metodu, abychom se vyhnuli blokování popupů
+      // Redirect method is more reliable than popup
       await initiateGoogleSignIn(auth);
     } catch (error: any) {
       toast({
@@ -70,16 +71,17 @@ export default function Login() {
         title: "Chyba přihlášení",
         description: "Nepodařilo se spustit Google přihlášení.",
       });
+      setIsLoading(false);
     }
   };
 
-  if (isUserLoading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
-
-  // Pokud je uživatel přihlášen, zobrazíme loader místo formuláře, zatímco probíhá useEffect
-  if (user) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  // While waiting for user status, show loading
+  if (isUserLoading || user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
