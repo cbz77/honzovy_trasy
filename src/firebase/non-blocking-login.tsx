@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Auth,
@@ -25,8 +24,12 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   return signInWithEmailAndPassword(authInstance, email, password);
 }
 
-/** Initiate Google sign-in. Returns promise to allow error handling. */
-export function initiateGoogleSignIn(authInstance: Auth): Promise<UserCredential> {
+/** 
+ * Initiate Google sign-in using redirect to avoid popup blockers.
+ * Note: signInWithRedirect returns void, it doesn't return a UserCredential immediately.
+ * The result is handled by Firebase on return to the page.
+ */
+export function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(authInstance, provider);
+  return signInWithRedirect(authInstance, provider);
 }
