@@ -1,35 +1,43 @@
-'use client';
+
 import {
-  Auth,
-  signInAnonymously,
+  signInWithRedirect,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
   GoogleAuthProvider,
-  UserCredential,
+  setPersistence,
+  browserLocalPersistence,
+  type Auth,
 } from 'firebase/auth';
 
-/** Initiate anonymous sign-in. Returns promise to allow error handling. */
-export function initiateAnonymousSignIn(authInstance: Auth): Promise<UserCredential> {
-  return signInAnonymously(authInstance);
+const provider = new GoogleAuthProvider();
+
+// Use this function to initiate the Google sign-in flow.
+export async function initiateGoogleSignIn(auth: Auth | null) {
+  if (!auth) {
+    console.error("initiateGoogleSignIn: Firebase Auth object is not available.");
+    throw new Error("Firebase Auth není k dispozici.");
+  }
+  // Set persistence to be local across the browser session.
+  await setPersistence(auth, browserLocalPersistence);
+  return signInWithRedirect(auth, provider);
 }
 
-/** Initiate email/password sign-up. Returns promise to allow error handling. */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
-  return createUserWithEmailAndPassword(authInstance, email, password);
+// Use this function to initiate the email/password sign-up flow.
+export async function initiateEmailSignUp(auth: Auth | null, email: string, pass: string) {
+  if (!auth) {
+    console.error("initiateEmailSignUp: Firebase Auth object is not available.");
+    throw new Error("Firebase Auth není k dispozici.");
+  }
+  await setPersistence(auth, browserLocalPersistence);
+  return createUserWithEmailAndPassword(auth, email, pass);
 }
 
-/** Initiate email/password sign-in. Returns promise to allow error handling. */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
-  return signInWithEmailAndPassword(authInstance, email, password);
-}
-
-/** 
- * Initiate Google sign-in using redirect to avoid popup blockers.
- * Note: signInWithRedirect returns void, it doesn't return a UserCredential immediately.
- * The result is handled by Firebase on return to the page.
- */
-export function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
-  const provider = new GoogleAuthProvider();
-  return signInWithRedirect(authInstance, provider);
+// Use this function to initiate the email/password sign-in flow.
+export async function initiateEmailSignIn(auth: Auth | null, email: string, pass: string) {
+  if (!auth) {
+    console.error("initiateEmailSignIn: Firebase Auth object is not available.");
+    throw new Error("Firebase Auth není k dispozici.");
+  }
+  await setPersistence(auth, browserLocalPersistence);
+  return signInWithEmailAndPassword(auth, email, pass);
 }
