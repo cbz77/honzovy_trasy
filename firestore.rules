@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -29,14 +30,12 @@ service cloud.firestore {
     match /published_route_points/{routePointId} {
       // EXPLICITNÍ ROZDĚLENÍ READ NA GET A LIST
       // Povolujeme veřejné čtení detailu (get) i seznamu (list/query) pro všechny
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       
       // Vytváření - jakýkoliv přihlášený uživatel
       allow create: if isSignedIn();
       
       // Úprava a smazání - pouze autor trasy nebo administrátor
-      // Kontrolujeme, zda data v databázi obsahují správné ID tvůrce
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
   }

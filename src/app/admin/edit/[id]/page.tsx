@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { generateRouteDescription } from '@/ai/flows/generate-route-description';
 import { suggestPhotoCaptions } from '@/ai/flows/suggest-photo-captions';
-import Image from 'image';
+import Image from 'next/image';
 
 const SUITABLE_OPTIONS = [
   { id: 'pěší', label: 'Pěší' },
