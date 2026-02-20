@@ -7,6 +7,7 @@ import {
   signInWithRedirect,
   GoogleAuthProvider,
   UserCredential,
+  getRedirectResult,
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in. Returns promise to allow error handling. */
@@ -32,4 +33,12 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
 export function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
   return signInWithRedirect(authInstance, provider);
+}
+
+/** 
+ * Get the result of a redirect sign-in operation.
+ * This should be called when the component mounts.
+ */
+export function getGoogleRedirectResult(authInstance: Auth): Promise<UserCredential | null> {
+  return getRedirectResult(authInstance);
 }
