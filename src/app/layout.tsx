@@ -30,7 +30,7 @@ export default function RootLayout({
           </main>
           <Toaster />
           <footer className="border-t bg-card py-8 px-4 text-center text-muted-foreground text-sm">
-            <p>© {new Date().getFullYear()} Honzovy trasy. Všechna práva vyhrazena.</p>
+            <p>© {new Date().getFullYear()} Honzovy trasy.1 Všechna práva vyhrazena.</p>
           </footer>
         </FirebaseClientProvider>
       </body>
