@@ -19,51 +19,51 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirectChecking, setIsRedirectChecking] = useState(true);
   const router = useRouter();
   const auth = useAuth();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Debugging auth state
+  // Debug log auth state
   useEffect(() => {
     console.log("Login: Stav uživatele se změnil:", { user: user?.uid, isUserLoading });
   }, [user, isUserLoading]);
 
-  // Explicitly check for redirect result on mount
+  // Handle Google Redirect Result
   useEffect(() => {
     const handleRedirectResult = async () => {
-      if (!auth) {
-        console.warn("Login: Auth instance není dostupná pro kontrolu redirectu");
-        return;
-      }
+      if (!auth) return;
       
       console.log("Login: Kontroluji výsledek Google redirectu...");
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          console.log("Login: Úspěšné přihlášení přes Google (Redirect result):", result.user.uid);
-          // Sync and redirect will be handled by the next useEffect when 'user' updates
+          console.log("Login: Úspěšně zachycen Google uživatel:", result.user.uid);
+          // Sync happens in separate useEffect when 'user' updates
         } else {
-          console.log("Login: Žádný výsledek redirectu (není chyba, běžný stav)");
+          console.log("Login: Žádný výsledek redirectu (pokračuji běžně)");
         }
       } catch (error: any) {
         console.error("Login: Chyba při zpracování přesměrování Google:", error);
         toast({
           variant: "destructive",
-          title: "Chyba Google přihlášení",
+          title: "Chyba přihlášení",
           description: error.message || "Nepodařilo se dokončit přihlášení přes Google.",
         });
+      } finally {
+        setIsRedirectChecking(false);
       }
     };
     handleRedirectResult();
   }, [auth, toast]);
 
-  // Sync user data to Firestore and redirect to admin when logged in
+  // Sync user data to Firestore and redirect to admin
   useEffect(() => {
     const syncUser = async () => {
       if (user && db) {
-        console.log("Login: Synchronizuji uživatele do Firestore...", user.uid);
+        console.log("Login: Synchronizuji uživatele do Firestore a přesměrovávám...", user.uid);
         try {
           const userRef = doc(db, 'users', user.uid);
           await setDoc(userRef, {
@@ -72,7 +72,6 @@ export default function Login() {
             lastLogin: new Date().toISOString(),
           }, { merge: true });
           
-          console.log("Login: Synchronizace OK, přesměrovávám do /admin");
           router.push('/admin');
         } catch (error) {
           console.error("Login: Chyba při synchronizaci uživatele:", error);
@@ -116,7 +115,7 @@ export default function Login() {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || isRedirectChecking) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -125,7 +124,6 @@ export default function Login() {
     );
   }
 
-  // If already logged in, the useEffect will redirect. Show loading until it happens.
   if (user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
